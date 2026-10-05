@@ -1,0 +1,6 @@
+# Configuration minimale pour le déploiement de la fonction Edge.
+project_id = "veille-farines"
+
+[functions.admin-utilisateurs]
+# La fonction vérifie elle-même, auprès de la base, que l'appelant est administrateur.
+verify_jwt = false

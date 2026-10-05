@@ -1,0 +1,92 @@
+# Veille Farines
+
+Collecte terrain des prix des minoteries concurrentes, avec :
+
+| Dossier | Contenu | Mise en ligne |
+|---|---|---|
+| `mobile/` | Application Android / iOS des enquêteurs (Expo) | APK construit par Expo (EAS), déclenché depuis GitHub |
+| `admin-web/` | Console d'administration (React) | Netlify, republiée à chaque push |
+| `supabase/sql/` | Scripts de la base, à exécuter **à la main**, dans l'ordre | Supabase > SQL Editor |
+| `supabase/functions/` | Fonction de gestion des comptes | Redéployée par GitHub Actions |
+
+## Mise en place (une seule fois)
+
+### 1. Base de données
+
+Dans Supabase > SQL Editor, exécutez dans l'ordre `01_…`, `02_…`, `03_…` du dossier `supabase/sql/`.
+Puis créez votre compte dans *Authentication > Users* et déclarez-vous administrateur :
+
+```sql
+INSERT INTO tb_administrateurs (email) VALUES ('votre.email@...');
+```
+
+> ⚠️ `01_farines_db_supabase.sql` commence par supprimer les tables. Ne le relancez jamais une
+> fois la collecte commencée. C'est pour cette raison qu'aucun script SQL n'est automatisé.
+
+### 2. Préparer l'application mobile (sur votre ordinateur)
+
+```bash
+cd mobile
+npm install
+npx expo install expo@latest
+npx expo install --fix
+npm install -g eas-cli
+eas login
+eas build -p android --profile apk
+```
+
+Cette première construction se fait sur votre ordinateur. Elle crée le projet chez Expo (elle
+ajoute son identifiant dans `app.json`) et génère la clé de signature Android : répondez **Yes**
+aux deux questions. Les constructions suivantes pourront partir de GitHub.
+
+### 3. Envoyer le code sur GitHub
+
+Créez un dépôt **privé** vide nommé `veille-farines` sur github.com, puis, depuis ce dossier :
+
+```bash
+git init
+git add .
+git commit -m "Version initiale"
+git branch -M main
+git remote add origin https://github.com/VOTRE-COMPTE/veille-farines.git
+git push -u origin main
+```
+
+### 4. Secrets GitHub
+
+Dans le dépôt, ouvrez *Settings > Secrets and variables > Actions*.
+
+| Type | Nom | Valeur |
+|---|---|---|
+| Secret | `SUPABASE_ACCESS_TOKEN` | supabase.com > Account > Access Tokens > Generate new token |
+| Secret | `EXPO_TOKEN` | expo.dev > Account settings > Access tokens > Create token |
+| Variable | `SUPABASE_PROJECT_REF` | `bktwecnhdrnkvcjdiext` |
+
+Ensuite, dans l'onglet *Actions*, lancez une fois « Supabase - fonction admin-utilisateurs »
+(bouton *Run workflow*) pour déployer la fonction.
+
+### 5. Relier Netlify
+
+Sur app.netlify.com, cliquez sur *Add new site*, puis *Import an existing project*, puis choisissez
+GitHub et le dépôt `veille-farines`. Netlify lit `netlify.toml` : ne changez aucun réglage et cliquez
+sur **Deploy**.
+
+Ensuite, dans Supabase, ouvrez *Authentication > URL Configuration* et mettez l'adresse Netlify
+dans *Site URL*.
+
+## Au quotidien
+
+| Vous faites… | Il se passe… |
+|---|---|
+| un push qui modifie `admin-web/` | GitHub vérifie la compilation, Netlify republie la console (1 à 2 min) |
+| un push qui modifie `supabase/functions/` | GitHub redéploie la fonction Edge |
+| *Actions > Mobile - construire l'APK > Run workflow* | Expo construit un nouvel APK. Le lien apparaît sur expo.dev (10 à 20 min) |
+| `git tag v1.0.1 && git push --tags` | Même chose, pour une version numérotée. Augmentez aussi `version` dans `mobile/app.json` |
+| une modification de la base | Ajoutez un script `04_…sql` et exécutez-le à la main dans Supabase |
+
+## À propos des fichiers `.env`
+
+Ils ne contiennent que l'URL du projet et la clé **publishable**, qui est publique par conception
+(la sécurité repose sur les règles RLS de la base). Ils sont donc versionnés pour que Netlify et
+Expo puissent construire. N'ajoutez **jamais** la clé secrète (`sb_secret_…` / `service_role`) au
+dépôt.

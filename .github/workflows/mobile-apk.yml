@@ -1,0 +1,31 @@
+name: Mobile - construire l'APK
+
+# Se lance à la main (onglet Actions > "Mobile - construire l'APK" > Run workflow)
+# ou en publiant une étiquette de version, par exemple v1.0.1.
+# La construction se fait sur les serveurs Expo (EAS) ; le lien de l'APK
+# apparaît sur expo.dev et dans le journal de cette action.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm install
+      - name: Vérifier le code
+        run: npx tsc --noEmit
+      - name: Lancer la construction
+        run: eas build --platform android --profile apk --non-interactive --no-wait

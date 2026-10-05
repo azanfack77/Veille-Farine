@@ -1,0 +1,6 @@
+node_modules/
+.expo/
+dist/
+*.apk
+# .env n'est pas ignoré : il ne contient que la clé publique (publishable),
+# et EAS Build en a besoin pour construire l'APK.

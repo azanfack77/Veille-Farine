@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Veille Farines",
+    "slug": "veille-farines",
+    "scheme": "veillefarines",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": { "backgroundColor": "#27348B" },
+    "android": {
+      "package": "com.veille.farines",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": { "backgroundColor": "#27348B" }
+    },
+    "ios": { "bundleIdentifier": "com.veille.farines", "supportsTablet": false },
+    "plugins": ["expo-router", "expo-font", "@react-native-community/datetimepicker"]
+  }
+}

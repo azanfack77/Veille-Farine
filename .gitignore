@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.expo/
+*.apk
+*.aab
+*.tsbuildinfo
+.DS_Store
+supabase/.temp/
+supabase/.branches/

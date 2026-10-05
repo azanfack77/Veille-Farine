@@ -1,0 +1,15 @@
+# Netlify lit ce fichier à la racine du dépôt GitHub.
+# Chaque push sur la branche main republie la console d'administration.
+[build]
+  base    = "admin-web"
+  command = "npm install && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Navigation entre les pages de la console (application monopage)
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
