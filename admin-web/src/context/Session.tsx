@@ -12,7 +12,20 @@ type Etat = {
   erreurRef: string | null;
   rechargerRef: () => Promise<void>;
   deconnecter: () => Promise<void>;
+  recuperation: boolean; // ouvert depuis un lien « mot de passe oublié »
+  terminerRecuperation: () => void;
 };
+
+// Lien de réinitialisation : à lire avant que Supabase ne nettoie l'URL
+const lienRecuperation = /type=recovery/.test(window.location.hash);
+const parametresLien = new URLSearchParams(window.location.hash.slice(1));
+
+/** Message à afficher si le lien reçu par email est expiré ou invalide. */
+export const erreurLien: string | null = parametresLien.get('error_code')
+  ? parametresLien.get('error_code') === 'otp_expired'
+    ? 'Ce lien a expiré ou a déjà été utilisé. Demandez un nouveau lien ci-dessous.'
+    : parametresLien.get('error_description')
+  : null;
 
 const Contexte = createContext<Etat | null>(null);
 
@@ -22,13 +35,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [estAdmin, setEstAdmin] = useState<boolean | null>(null);
   const [ref, setRef] = useState<Referentiel | null>(null);
   const [erreurRef, setErreurRef] = useState<string | null>(null);
+  const [recuperation, setRecuperation] = useState(lienRecuperation);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setPret(true);
     });
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data } = supabase.auth.onAuthStateChange((evenement, s) => {
+      if (evenement === 'PASSWORD_RECOVERY') setRecuperation(true);
+      setSession(s);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -56,11 +73,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [session?.user.id, rechargerRef]);
 
   const deconnecter = useCallback(async () => {
+    setRecuperation(false);
     await supabase.auth.signOut();
   }, []);
 
+  const terminerRecuperation = useCallback(() => setRecuperation(false), []);
+
   return (
-    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter }}>
+    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter, recuperation, terminerRecuperation }}>
       {children}
     </Contexte.Provider>
   );
