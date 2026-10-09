@@ -1,72 +1,102 @@
-import { FormEvent, ReactNode, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import { Champ, Message } from '../components/ui';
-import { erreurLien, useSession } from '../context/Session';
+import { useSession } from '../context/Session';
+import { noterActivite } from '../lib/inactivite';
 import { supabase } from '../lib/supabase';
 
-type Mode = 'connexion' | 'oubli';
+// Connexion sans mot de passe : un code à usage unique est envoyé par email.
+// Le modèle d'email « Magic Link » de Supabase doit contenir {{ .Token }} (voir le README).
+
+const ATTENTE_RENVOI_S = 60; // Supabase refuse un nouvel envoi avant 60 secondes
 
 export function Connexion() {
-  const [mode, setMode] = useState<Mode>(erreurLien ? 'oubli' : 'connexion');
+  const { motifDeconnexion } = useSession();
+  const [etape, setEtape] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
-  const [motDePasse, setMotDePasse] = useState('');
-  const [erreur, setErreur] = useState<string | null>(erreurLien);
-  const [succes, setSucces] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(motifDeconnexion);
   const [chargement, setChargement] = useState(false);
+  const [renvoiDans, setRenvoiDans] = useState(0);
 
-  const changerMode = (m: Mode) => {
-    setMode(m);
-    setErreur(null);
-    setSucces(null);
-  };
+  useEffect(() => {
+    if (renvoiDans <= 0) return;
+    const minuteur = window.setTimeout(() => setRenvoiDans((s) => s - 1), 1000);
+    return () => window.clearTimeout(minuteur);
+  }, [renvoiDans]);
 
-  const envoyer = async (e: FormEvent) => {
-    e.preventDefault();
+  const envoyerCode = async (e?: FormEvent) => {
+    e?.preventDefault();
     setErreur(null);
+    setInfo(null);
+    const adresse = email.trim().toLowerCase();
     setChargement(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: motDePasse });
+    // shouldCreateUser: false — seuls les comptes existants peuvent recevoir un code
+    const { error } = await supabase.auth.signInWithOtp({ email: adresse, options: { shouldCreateUser: false } });
     setChargement(false);
-    if (error) setErreur(/invalid/i.test(error.message) ? 'Email ou mot de passe incorrect.' : error.message);
+    if (error) {
+      setErreur(traduireErreurEnvoi(error.message));
+      return;
+    }
+    setEmail(adresse);
+    setCode('');
+    setEtape('code');
+    setRenvoiDans(ATTENTE_RENVOI_S);
+    setInfo(`Un code a été envoyé à ${adresse}. Pensez à vérifier les courriers indésirables.`);
   };
 
-  const demanderReinitialisation = async (e: FormEvent) => {
+  const verifierCode = async (e: FormEvent) => {
     e.preventDefault();
     setErreur(null);
-    setSucces(null);
     setChargement(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/`,
-    });
+    noterActivite(); // avant la connexion : le contrôle d'inactivité ne doit pas la refuser
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
     setChargement(false);
     if (error) {
       setErreur(
-        /rate limit/i.test(error.message)
-          ? "Trop de demandes d'email. Patientez quelques minutes avant de réessayer."
+        /expired|invalid/i.test(error.message)
+          ? 'Code incorrect ou expiré. Vérifiez le dernier email reçu, ou demandez un nouveau code.'
           : error.message,
       );
-      return;
     }
-    // Message volontairement identique que le compte existe ou non
-    setSucces(
-      `Si un compte existe pour ${email.trim()}, un email contenant un lien de réinitialisation vient d'être envoyé. Pensez à vérifier les indésirables.`,
-    );
   };
 
-  if (mode === 'oubli') {
+  const changerEmail = () => {
+    setEtape('email');
+    setCode('');
+    setErreur(null);
+    setInfo(null);
+  };
+
+  if (etape === 'code') {
     return (
       <CadreConnexion>
-        <form className="connexion-formulaire" onSubmit={demanderReinitialisation}>
-          <h1>Mot de passe oublié</h1>
-          <p className="description">Saisissez votre email : vous recevrez un lien pour choisir un nouveau mot de passe.</p>
-          <Champ libelle="Email">
-            <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <form className="connexion-formulaire" onSubmit={verifierCode}>
+          <h1>Code de connexion</h1>
+          <p className="description">Saisissez le code envoyé à {email}.</p>
+          <Champ libelle="Code reçu par email">
+            <input
+              className="saisie-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6,10}"
+              maxLength={10}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              autoFocus
+              required
+            />
           </Champ>
+          {info ? <Message ton="succes">{info}</Message> : null}
           {erreur ? <Message ton="erreur">{erreur}</Message> : null}
-          {succes ? <Message ton="succes">{succes}</Message> : null}
           <button className="bouton" type="submit" disabled={chargement}>
-            {chargement ? 'Envoi…' : 'Envoyer le lien'}
+            {chargement ? 'Vérification…' : 'Se connecter'}
           </button>
-          <button type="button" className="lien-discret" onClick={() => changerMode('connexion')}>
-            ← Retour à la connexion
+          <button type="button" className="lien-discret" onClick={() => envoyerCode()} disabled={renvoiDans > 0 || chargement}>
+            {renvoiDans > 0 ? `Renvoyer un code (${renvoiDans} s)` : 'Renvoyer un code'}
+          </button>
+          <button type="button" className="lien-discret" onClick={changerEmail}>
+            ← Changer d'email
           </button>
         </form>
       </CadreConnexion>
@@ -75,90 +105,29 @@ export function Connexion() {
 
   return (
     <CadreConnexion>
-      <form className="connexion-formulaire" onSubmit={envoyer}>
+      <form className="connexion-formulaire" onSubmit={envoyerCode}>
         <h1>Connexion</h1>
+        <p className="description">Vous recevrez un code de connexion par email. Aucun mot de passe n'est nécessaire.</p>
         <Champ libelle="Email">
           <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Champ>
-        <Champ libelle="Mot de passe">
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={motDePasse}
-            onChange={(e) => setMotDePasse(e.target.value)}
-            required
-          />
-        </Champ>
+        {info ? <Message ton="info">{info}</Message> : null}
         {erreur ? <Message ton="erreur">{erreur}</Message> : null}
         <button className="bouton" type="submit" disabled={chargement}>
-          {chargement ? 'Connexion…' : 'Se connecter'}
-        </button>
-        <button type="button" className="lien-discret" onClick={() => changerMode('oubli')}>
-          Mot de passe oublié ?
+          {chargement ? 'Envoi…' : 'Recevoir un code'}
         </button>
       </form>
     </CadreConnexion>
   );
 }
 
-/** Écran affiché après un clic sur le lien de réinitialisation reçu par email. */
-export function NouveauMotDePasse() {
-  const { terminerRecuperation } = useSession();
-  const [motDePasse, setMotDePasse] = useState('');
-  const [confirmation, setConfirmation] = useState('');
-  const [erreur, setErreur] = useState<string | null>(null);
-  const [chargement, setChargement] = useState(false);
-
-  const enregistrer = async (e: FormEvent) => {
-    e.preventDefault();
-    setErreur(null);
-    if (motDePasse.length < 8) return setErreur('Le mot de passe doit contenir au moins 8 caractères.');
-    if (motDePasse !== confirmation) return setErreur('Les deux mots de passe ne correspondent pas.');
-    setChargement(true);
-    const { error } = await supabase.auth.updateUser({ password: motDePasse });
-    setChargement(false);
-    if (error) {
-      setErreur(
-        /different from the old/i.test(error.message)
-          ? "Le nouveau mot de passe doit être différent de l'ancien."
-          : error.message,
-      );
-      return;
-    }
-    terminerRecuperation();
-  };
-
-  return (
-    <CadreConnexion>
-      <form className="connexion-formulaire" onSubmit={enregistrer}>
-        <h1>Nouveau mot de passe</h1>
-        <Champ libelle="Nouveau mot de passe">
-          <input
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            value={motDePasse}
-            onChange={(e) => setMotDePasse(e.target.value)}
-            required
-          />
-        </Champ>
-        <Champ libelle="Confirmer le mot de passe">
-          <input
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            value={confirmation}
-            onChange={(e) => setConfirmation(e.target.value)}
-            required
-          />
-        </Champ>
-        {erreur ? <Message ton="erreur">{erreur}</Message> : null}
-        <button className="bouton" type="submit" disabled={chargement}>
-          {chargement ? 'Enregistrement…' : 'Enregistrer le mot de passe'}
-        </button>
-      </form>
-    </CadreConnexion>
-  );
+function traduireErreurEnvoi(message: string): string {
+  if (/signups not allowed|user not found/i.test(message))
+    return "Aucun compte n'existe pour cet email. Demandez à un administrateur de vous ajouter.";
+  if (/banned/i.test(message)) return "Ce compte est désactivé. Contactez l'administrateur.";
+  if (/rate limit|security purposes|seconds/i.test(message))
+    return 'Trop de demandes. Patientez une minute avant de demander un nouveau code.';
+  return message;
 }
 
 function CadreConnexion({ children }: { children: ReactNode }) {

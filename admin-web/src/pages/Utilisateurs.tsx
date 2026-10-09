@@ -4,12 +4,6 @@ import { useReferentiel } from '../context/Session';
 import { appelerGestionComptes, messageErreur, supabase } from '../lib/supabase';
 import type { Utilisateur } from '../lib/types';
 
-function genererMotDePasse(): string {
-  const car = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-  const octets = crypto.getRandomValues(new Uint32Array(10));
-  return Array.from(octets, (n) => car[n % car.length]).join('');
-}
-
 type Fiche = {
   nom: string;
   prenom: string;
@@ -17,7 +11,6 @@ type Fiche = {
   phone: string;
   id_fonction: string;
   id_minoterie: string;
-  mot_de_passe: string;
 };
 
 export function Utilisateurs() {
@@ -26,7 +19,6 @@ export function Utilisateurs() {
   const [message, setMessage] = useState<{ ton: 'erreur' | 'succes'; texte: string } | null>(null);
   const [creation, setCreation] = useState(false);
   const [edition, setEdition] = useState<Utilisateur | null>(null);
-  const [motDePasse, setMotDePasse] = useState<Utilisateur | null>(null);
   const [recherche, setRecherche] = useState('');
 
   const charger = useCallback(async () => {
@@ -137,9 +129,6 @@ export function Utilisateurs() {
                       <button className="lien-discret" onClick={() => setEdition(u)}>
                         Modifier
                       </button>
-                      <button className="lien-discret" onClick={() => setMotDePasse(u)}>
-                        Mot de passe
-                      </button>
                       <button className={`lien-discret ${u.actif ? 'danger' : ''}`} onClick={() => basculerActif(u)}>
                         {u.actif ? 'Désactiver' : 'Réactiver'}
                       </button>
@@ -167,17 +156,6 @@ export function Utilisateurs() {
           }}
         />
       ) : null}
-
-      {motDePasse ? (
-        <FormulaireMotDePasse
-          utilisateur={motDePasse}
-          onFermer={() => setMotDePasse(null)}
-          onEnregistre={(texte) => {
-            setMotDePasse(null);
-            setMessage({ ton: 'succes', texte });
-          }}
-        />
-      ) : null}
     </>
   );
 }
@@ -200,7 +178,6 @@ function FormulaireUtilisateur({
     phone: utilisateur?.phone ?? '+237',
     id_fonction: utilisateur?.id_fonction == null ? '' : String(utilisateur.id_fonction),
     id_minoterie: String(utilisateur?.id_minoterie ?? minoteriesAutorisees[0]?.id_minoterie ?? ''),
-    mot_de_passe: genererMotDePasse(),
   }));
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -223,9 +200,9 @@ function FormulaireUtilisateur({
         if (error) throw error;
         onEnregistre(`Fiche de ${commun.prenom} ${commun.nom} mise à jour.`);
       } else {
-        await appelerGestionComptes({ action: 'creer', email: fiche.email.trim(), mot_de_passe: fiche.mot_de_passe, ...commun });
+        await appelerGestionComptes({ action: 'creer', email: fiche.email.trim(), ...commun });
         onEnregistre(
-          `${commun.prenom} ${commun.nom} peut se connecter avec ${fiche.email.trim()} et le mot de passe ${fiche.mot_de_passe}. Transmettez-le-lui de façon sûre.`,
+          `${commun.prenom} ${commun.nom} peut se connecter avec ${fiche.email.trim()} : l'application lui enverra un code par email.`,
         );
       }
     } catch (err) {
@@ -246,7 +223,7 @@ function FormulaireUtilisateur({
             <input value={fiche.nom} onChange={maj('nom')} required />
           </Champ>
         </div>
-        <Champ libelle="Email" aide={utilisateur ? "L'email sert d'identifiant et ne peut pas être modifié." : undefined}>
+        <Champ libelle="Email" aide={utilisateur ? "L'email sert d'identifiant et ne peut pas être modifié." : 'Les codes de connexion seront envoyés à cette adresse.'}>
           <input type="email" value={fiche.email} onChange={maj('email')} required disabled={!!utilisateur} />
         </Champ>
         <div className="grille-2">
@@ -273,16 +250,6 @@ function FormulaireUtilisateur({
             ))}
           </select>
         </Champ>
-        {!utilisateur ? (
-          <Champ libelle="Mot de passe provisoire" aide="8 caractères minimum. Notez-le avant de valider.">
-            <div className="ligne-champ">
-              <input value={fiche.mot_de_passe} onChange={maj('mot_de_passe')} minLength={8} required />
-              <button type="button" className="bouton bouton-contour petit" onClick={() => setFiche((f) => ({ ...f, mot_de_passe: genererMotDePasse() }))}>
-                Générer
-              </button>
-            </div>
-          </Champ>
-        ) : null}
         {erreur ? <Message ton="erreur">{erreur}</Message> : null}
         <div className="fenetre-pied integre">
           <button type="button" className="bouton bouton-contour" onClick={onFermer}>
@@ -290,58 +257,6 @@ function FormulaireUtilisateur({
           </button>
           <button type="submit" className="bouton" disabled={envoi}>
             {envoi ? 'Enregistrement…' : utilisateur ? 'Enregistrer' : "Créer l'enquêteur"}
-          </button>
-        </div>
-      </form>
-    </Fenetre>
-  );
-}
-
-function FormulaireMotDePasse({
-  utilisateur,
-  onFermer,
-  onEnregistre,
-}: {
-  utilisateur: Utilisateur;
-  onFermer: () => void;
-  onEnregistre: (message: string) => void;
-}) {
-  const [mdp, setMdp] = useState(genererMotDePasse);
-  const [erreur, setErreur] = useState<string | null>(null);
-  const [envoi, setEnvoi] = useState(false);
-
-  const envoyer = async (e: FormEvent) => {
-    e.preventDefault();
-    setEnvoi(true);
-    setErreur(null);
-    try {
-      await appelerGestionComptes({ action: 'mot_de_passe', email: utilisateur.email, mot_de_passe: mdp });
-      onEnregistre(`Nouveau mot de passe de ${utilisateur.prenom} ${utilisateur.nom} : ${mdp}`);
-    } catch (err) {
-      setErreur(messageErreur(err));
-    } finally {
-      setEnvoi(false);
-    }
-  };
-
-  return (
-    <Fenetre titre={`Nouveau mot de passe pour ${utilisateur.prenom} ${utilisateur.nom}`} onFermer={onFermer}>
-      <form onSubmit={envoyer} className="formulaire">
-        <Champ libelle="Mot de passe" aide="L'ancien mot de passe cessera de fonctionner immédiatement.">
-          <div className="ligne-champ">
-            <input value={mdp} onChange={(e) => setMdp(e.target.value)} minLength={8} required />
-            <button type="button" className="bouton bouton-contour petit" onClick={() => setMdp(genererMotDePasse())}>
-              Générer
-            </button>
-          </div>
-        </Champ>
-        {erreur ? <Message ton="erreur">{erreur}</Message> : null}
-        <div className="fenetre-pied integre">
-          <button type="button" className="bouton bouton-contour" onClick={onFermer}>
-            Annuler
-          </button>
-          <button type="submit" className="bouton" disabled={envoi}>
-            {envoi ? 'Enregistrement…' : 'Définir le mot de passe'}
           </button>
         </div>
       </form>

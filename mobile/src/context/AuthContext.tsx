@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { MODE_DEMO, SESSION_DEMO, UTILISATEUR_DEMO } from '../lib/demo';
+import { inactifTropLongtemps, JOURS_INACTIVITE, noterActivite, oublierActivite } from '../lib/inactivite';
 import { supabase } from '../lib/supabase';
 import type { Utilisateur } from '../lib/types';
 
@@ -12,6 +14,7 @@ type EtatAuth = {
   erreurProfil: string | null;
   rechargerProfil: () => Promise<void>;
   deconnecter: () => Promise<void>;
+  motifDeconnexion: string | null; // affiché sur l'écran de connexion
 };
 
 const Contexte = createContext<EtatAuth | null>(null);
@@ -22,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [utilisateur, setUtilisateur] = useState<Utilisateur | null>(null);
   const [pret, setPret] = useState(false);
   const [erreurProfil, setErreurProfil] = useState<string | null>(null);
+  const [motifDeconnexion, setMotifDeconnexion] = useState<string | null>(null);
 
   useEffect(() => {
     if (MODE_DEMO) {
@@ -29,12 +33,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPret(true);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+
+    /** Ferme la session si l'application n'a pas servi depuis 60 jours, sinon note l'activité. */
+    const verifierInactivite = async (s: Session | null): Promise<Session | null> => {
+      if (!s) return null;
+      if (await inactifTropLongtemps()) {
+        await oublierActivite();
+        await supabase.auth.signOut({ scope: 'local' });
+        setMotifDeconnexion(
+          `Vous avez été déconnecté après ${JOURS_INACTIVITE} jours sans utilisation. Reconnectez-vous avec un code reçu par email.`,
+        );
+        return null;
+      }
+      await noterActivite();
+      return s;
+    };
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      setSession(await verifierInactivite(data.session));
       setPret(true);
     });
-    const { data } = supabase.auth.onAuthStateChange((_evenement, nouvelle) => setSession(nouvelle));
-    return () => data.subscription.unsubscribe();
+    const { data } = supabase.auth.onAuthStateChange((evenement, nouvelle) => {
+      if (evenement === 'INITIAL_SESSION') return; // traité par getSession, après le contrôle d'inactivité
+      if (evenement === 'SIGNED_IN') setMotifDeconnexion(null); // activité notée par l'écran de connexion
+      setSession(nouvelle);
+    });
+    const premierPlan = AppState.addEventListener('change', async (etat) => {
+      if (etat !== 'active') return;
+      const { data: actuelle } = await supabase.auth.getSession();
+      if (actuelle.session) await verifierInactivite(actuelle.session);
+    });
+    return () => {
+      data.subscription.unsubscribe();
+      premierPlan.remove();
+    };
   }, []);
 
   const chargerProfil = useCallback(async (s: Session) => {
@@ -85,11 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deconnecter = useCallback(async () => {
     if (MODE_DEMO) return;
     if (session) await AsyncStorage.removeItem(cleProfil(session.user.id));
+    await oublierActivite();
     await supabase.auth.signOut();
   }, [session]);
 
   return (
-    <Contexte.Provider value={{ session, utilisateur, pret, erreurProfil, rechargerProfil, deconnecter }}>
+    <Contexte.Provider value={{ session, utilisateur, pret, erreurProfil, rechargerProfil, deconnecter, motifDeconnexion }}>
       {children}
     </Contexte.Provider>
   );

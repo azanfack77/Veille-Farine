@@ -5,7 +5,9 @@ des minoteries, branchée directement sur la base Supabase `farines_db_supabase.
 
 ## Ce que fait l'application
 
-- **Connexion** par email et mot de passe (Supabase Auth). L'email doit exister dans `tb_utilisateurs`.
+- **Connexion sans mot de passe** : l'enquêteur saisit son email et recopie le code reçu
+  (Supabase Auth, voir « Connexion par code » dans le README principal). L'email doit exister dans
+  `tb_utilisateurs`. La session est fermée après 60 jours sans ouvrir l'application.
 - **Saisie d'un relevé** en respectant toutes les règles de la base :
   - la ville proposée dépend de la région (TCHAD, RCA, GUINEE : pas de ville) ;
   - la gamme et le segment se déduisent de la marque (pas de double saisie) ;
@@ -35,14 +37,9 @@ des minoteries, branchée directement sur la base Supabase `farines_db_supabase.
 
 ### 2. Créer les enquêteurs
 
-Pour chaque personne :
-
-1. *Authentication > Users > Add user* : email + mot de passe (cochez *Auto Confirm User*).
-2. Ajoutez la ligne correspondante dans `tb_utilisateurs` **avec exactement le même email**
-   (minoterie CADYST GRAIN ou SGMC ; un exemple SQL est en bas de `migration_app.sql`).
-
-Conseil : dans *Authentication > Providers > Email*, désactivez *Allow new users to sign up*
-pour que seuls les comptes que vous créez puissent se connecter.
+Depuis la console d'administration, page **Enquêteurs > Ajouter un enquêteur** : le compte de
+connexion et la fiche `tb_utilisateurs` sont créés en une fois. Aucun mot de passe à transmettre :
+l'enquêteur recevra un code par email à chaque connexion.
 
 ### 3. Lancer l'application
 

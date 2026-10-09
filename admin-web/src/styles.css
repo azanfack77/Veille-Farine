@@ -95,6 +95,7 @@ h2 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
   border-radius: 4px;
 }
 .lien-discret:hover { text-decoration: underline; }
+.lien-discret:disabled { color: var(--encre-douce); cursor: default; text-decoration: none; }
 .lien-discret.danger { color: var(--erreur); }
 .lien-discret.clair { color: #fff; padding-left: 0; text-align: left; }
 
@@ -226,6 +227,7 @@ h2 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
 .connexion-titre { font-family: var(--chiffre); font-weight: 700; font-size: clamp(64px, 9vw, 120px); line-height: 0.92; margin: 0; }
 .connexion-sous-titre { color: var(--ble); font-size: 19px; font-weight: 500; margin: 20px 0 0; max-width: 28ch; }
 .connexion-formulaire { align-self: center; justify-self: center; width: min(380px, 90%); display: flex; flex-direction: column; gap: 16px; }
+.champ input.saisie-code { font-family: var(--chiffre); font-size: 26px; letter-spacing: 6px; text-align: center; }
 .page-seule { max-width: 560px; margin: 12vh auto; padding: 0 24px; display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
 
 @media (max-width: 900px) {

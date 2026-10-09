@@ -2,7 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Champ, Chargement, EnTetePage, Message } from '../components/ui';
 import { useSession } from '../context/Session';
 import { formatDate } from '../lib/format';
-import { messageErreur, supabase } from '../lib/supabase';
+import { appelerGestionComptes, messageErreur, supabase } from '../lib/supabase';
 
 type Admin = { id_administrateur: number; email: string; cree_le: string };
 
@@ -24,16 +24,24 @@ export function Administrateurs() {
 
   const ajouter = async (e: FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('tb_administrateurs').insert({ email: email.trim().toLowerCase() });
-    if (error) setMessage({ ton: 'erreur', texte: messageErreur(error) });
-    else {
-      setMessage({
-        ton: 'succes',
-        texte: `${email.trim()} est administrateur. S'il n'a pas encore de compte, créez-le dans Supabase (Authentication > Users).`,
-      });
-      setEmail('');
-      charger();
+    const adresse = email.trim().toLowerCase();
+    const { error } = await supabase.from('tb_administrateurs').insert({ email: adresse });
+    if (error) {
+      setMessage({ ton: 'erreur', texte: messageErreur(error) });
+      return;
     }
+    // Crée le compte de connexion s'il n'existe pas encore (connexion par code reçu par email)
+    try {
+      await appelerGestionComptes({ action: 'compte', email: adresse });
+      setMessage({ ton: 'succes', texte: `${adresse} est administrateur : il se connecte avec un code reçu par email.` });
+    } catch (err) {
+      setMessage({
+        ton: 'erreur',
+        texte: `${adresse} est administrateur, mais son compte de connexion n'a pas pu être créé : ${messageErreur(err)}`,
+      });
+    }
+    setEmail('');
+    charger();
   };
 
   const retirer = async (a: Admin) => {
