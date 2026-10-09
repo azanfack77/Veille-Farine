@@ -32,11 +32,10 @@ code, et le recopie. Dans Supabase :
 1. **Envoi des emails (obligatoire)** : *Authentication > Emails > SMTP Settings*, renseignez un
    serveur SMTP (messagerie de l'entreprise, Brevo, SendGrid…). Sans cela, Supabase n'envoie des
    emails qu'aux membres de l'équipe du projet Supabase, et seulement quelques-uns par heure.
-2. **Modèle d'email (obligatoire)** : *Authentication > Emails > Templates > Magic Link*, remplacez
-   le contenu par un texte qui contient `{{ .Token }}`, par exemple :
-
-   - Sujet : `Votre code de connexion Veille Farines`
-   - Corps : `<p>Votre code de connexion : <strong>{{ .Token }}</strong></p><p>Il expire dans une heure. Si vous n'avez rien demandé, ignorez cet email.</p>`
+2. **Modèle d'email (obligatoire)** : *Authentication > Emails > Templates > Magic Link*, mettez le
+   sujet `Votre code de connexion Veille Farines` et collez dans le corps le contenu de
+   [`supabase/templates/code-connexion.html`](supabase/templates/code-connexion.html) (il affiche
+   le code `{{ .Token }}` en grand).
 
    Sans `{{ .Token }}`, l'email contient un lien au lieu d'un code, et la connexion échoue.
 3. **Inscriptions** : *Authentication > Sign In / Providers > Email*, désactivez *Allow new users to
