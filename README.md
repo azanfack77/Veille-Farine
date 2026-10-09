@@ -68,8 +68,16 @@ Ensuite, dans l'onglet *Actions*, lancez une fois « Supabase - fonction admin-u
 ### 5. Relier Netlify
 
 Sur app.netlify.com, cliquez sur *Add new site*, puis *Import an existing project*, puis choisissez
-GitHub et le dépôt `veille-farines`. Netlify lit `netlify.toml` : ne changez aucun réglage et cliquez
-sur **Deploy**.
+GitHub et le dépôt `veille-farines`. Netlify lit `netlify.toml` : ne changez aucun réglage de
+construction. Avant de cliquer sur **Deploy**, ajoutez dans *Environment variables* :
+
+| Nom | Valeur |
+|---|---|
+| `VITE_SUPABASE_URL` | l'URL du projet Supabase (voir `admin-web/.env.example`) |
+| `VITE_SUPABASE_ANON_KEY` | la clé **publishable** (ou ancienne clé `anon`) |
+
+Sans ces deux variables, la console affiche « configuration manquante ». Si vous les ajoutez
+après coup, relancez une publication (*Deploys > Trigger deploy*).
 
 Ensuite, dans Supabase, ouvrez *Authentication > URL Configuration* et mettez l'adresse Netlify
 dans *Site URL*.
@@ -87,6 +95,22 @@ dans *Site URL*.
 ## À propos des fichiers `.env`
 
 Ils ne contiennent que l'URL du projet et la clé **publishable**, qui est publique par conception
-(la sécurité repose sur les règles RLS de la base). Ils sont donc versionnés pour que Netlify et
-Expo puissent construire. N'ajoutez **jamais** la clé secrète (`sb_secret_…` / `service_role`) au
-dépôt.
+(la sécurité repose sur les règles RLS de la base).
+
+- `mobile/.env` est versionné : EAS Build en a besoin pour construire l'APK.
+- `admin-web/.env` n'est **pas** versionné : copiez `admin-web/.env.example` pour travailler en
+  local, et renseignez les variables dans Netlify (étape 5).
+
+N'ajoutez **jamais** la clé secrète (`sb_secret_…` / `service_role`) au dépôt.
+
+## Tester l'application mobile sur l'ordinateur
+
+```bash
+cd mobile
+npm run demo
+```
+
+Ouvre l'application dans le navigateur (http://localhost:8081, affichage téléphone avec F12 puis
+Ctrl+Maj+M), **sans connexion** et avec des listes d'exemple. Les relevés restent sur l'ordinateur et
+ne sont jamais envoyés à la base. Ce mode n'existe qu'en développement : l'APK affiche toujours
+l'écran de connexion. Le calendrier « Autre date » ne fonctionne pas dans le navigateur.

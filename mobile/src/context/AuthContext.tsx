@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { MODE_DEMO, SESSION_DEMO, UTILISATEUR_DEMO } from '../lib/demo';
 import { supabase } from '../lib/supabase';
 import type { Utilisateur } from '../lib/types';
 
@@ -23,6 +24,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [erreurProfil, setErreurProfil] = useState<string | null>(null);
 
   useEffect(() => {
+    if (MODE_DEMO) {
+      setSession(SESSION_DEMO);
+      setPret(true);
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setPret(true);
@@ -33,6 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const chargerProfil = useCallback(async (s: Session) => {
     setErreurProfil(null);
+    if (MODE_DEMO) {
+      setUtilisateur(UTILISATEUR_DEMO);
+      return;
+    }
     const email = s.user.email ?? '';
     // La politique RLS ne renvoie que la fiche de l'utilisateur connecté
     const { data, error } = await supabase
@@ -73,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, chargerProfil]);
 
   const deconnecter = useCallback(async () => {
+    if (MODE_DEMO) return;
     if (session) await AsyncStorage.removeItem(cleProfil(session.user.id));
     await supabase.auth.signOut();
   }, [session]);
