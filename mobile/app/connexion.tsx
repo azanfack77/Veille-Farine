@@ -43,7 +43,7 @@ export default function EcranConnexion() {
     const { error } = await supabase.auth.signInWithOtp({ email: adresse, options: { shouldCreateUser: false } });
     setChargement(false);
     if (error) {
-      setMessage({ ton: 'erreur', texte: traduireErreurEnvoi(error.message) });
+      setMessage({ ton: 'erreur', texte: traduireErreurEnvoi(error.message, error.code) });
       return;
     }
     setEmail(adresse);
@@ -145,7 +145,10 @@ export default function EcranConnexion() {
   );
 }
 
-function traduireErreurEnvoi(message: string): string {
+function traduireErreurEnvoi(message: string, code?: string): string {
+  // Limite globale du projet (2 emails par heure sans serveur SMTP configuré dans Supabase)
+  if (code === 'over_email_send_rate_limit' || /email rate limit/i.test(message))
+    return "Limite d'envoi d'emails atteinte pour le moment. Réessayez dans une heure, ou demandez à l'administrateur de configurer l'envoi d'emails (SMTP) dans Supabase.";
   if (/signups not allowed|user not found/i.test(message))
     return "Aucun compte n'existe pour cet email. Demandez à l'administrateur de vous ajouter.";
   if (/banned/i.test(message)) return "Ce compte est désactivé. Contactez l'administrateur.";
