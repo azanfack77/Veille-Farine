@@ -10,6 +10,7 @@ import { formatDateISO, formatNombre } from '../../src/lib/format';
 import { supabase } from '../../src/lib/supabase';
 import type { ElementFile, LigneVeille } from '../../src/lib/types';
 import { couleurs, polices } from '../../src/theme';
+import { LogoMinoterie } from '../../src/components/LogoMinoterie';
 
 const COLONNES =
   'id_veille,date_veille,region,ville,marque,grammage_kg,minoterie,segment,sortie_usine,net_rendu_grossiste,prix_marche_grossiste,volume';
@@ -61,6 +62,7 @@ export default function EcranHistorique() {
 
   return (
     <SafeAreaView style={s.page} edges={['top']}>
+      <LogoMinoterie />
       <Text style={s.titre}>Historique</Text>
       <ScrollView
         contentContainerStyle={s.contenu}

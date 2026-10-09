@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import { PiedDePage } from '../components/Layout';
 import { Champ, Message } from '../components/ui';
 import { useSession } from '../context/Session';
 import { noterActivite } from '../lib/inactivite';
@@ -144,7 +145,10 @@ function CadreConnexion({ children }: { children: ReactNode }) {
         </p>
         <p className="connexion-sous-titre">Console d'administration des relevés de prix</p>
       </section>
-      {children}
+      <div className="connexion-cote">
+        {children}
+        <PiedDePage />
+      </div>
     </div>
   );
 }

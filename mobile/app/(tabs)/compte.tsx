@@ -9,6 +9,7 @@ import { useFileAttente } from '../../src/hooks/useFileAttente';
 import { lireDerniereSync, synchroniser } from '../../src/lib/fileAttente';
 import { formatHorodatage } from '../../src/lib/format';
 import { couleurs, polices } from '../../src/theme';
+import { LogoMinoterie } from '../../src/components/LogoMinoterie';
 
 export default function EcranCompte() {
   const { utilisateur, session, deconnecter } = useAuth();
@@ -50,6 +51,7 @@ export default function EcranCompte() {
 
   return (
     <SafeAreaView style={s.page} edges={['top']}>
+      <LogoMinoterie />
       <Text style={s.titre}>Compte</Text>
       <ScrollView contentContainerStyle={s.contenu}>
         <Carte>

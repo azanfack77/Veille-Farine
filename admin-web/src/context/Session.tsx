@@ -14,6 +14,7 @@ type Etat = {
   rechargerRef: () => Promise<void>;
   deconnecter: () => Promise<void>;
   motifDeconnexion: string | null; // affiché sur l'écran de connexion
+  idMinoterie: number | null; // minoterie de la personne connectée (fiche tb_utilisateurs), si elle en a une
 };
 
 // Contrôle d'inactivité au retour sur l'onglet et toutes les heures (un onglet resté ouvert sans
@@ -30,6 +31,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ref, setRef] = useState<Referentiel | null>(null);
   const [erreurRef, setErreurRef] = useState<string | null>(null);
   const [motifDeconnexion, setMotifDeconnexion] = useState<string | null>(null);
+  const [idMinoterie, setIdMinoterie] = useState<number | null>(null);
 
   useEffect(() => {
     /** Ferme la session si la console n'a pas servi depuis 60 jours, sinon note l'activité. */
@@ -100,6 +102,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!session) {
       setEstAdmin(null);
       setRef(null);
+      setIdMinoterie(null);
       return;
     }
     setEstAdmin(null);
@@ -108,6 +111,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setEstAdmin(admin);
       if (admin) rechargerRef();
     });
+    // Société de la personne connectée, pour afficher son logo
+    supabase
+      .from('tb_utilisateurs')
+      .select('id_minoterie')
+      .ilike('email', session.user.email ?? '')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setIdMinoterie((data?.id_minoterie as number | undefined) ?? null));
   }, [session?.user.id, rechargerRef]);
 
   const deconnecter = useCallback(async () => {
@@ -116,7 +127,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter, motifDeconnexion }}>
+    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter, motifDeconnexion, idMinoterie }}>
       {children}
     </Contexte.Provider>
   );

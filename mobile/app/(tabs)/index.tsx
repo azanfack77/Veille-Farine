@@ -24,6 +24,7 @@ import { ajouterALaFile, synchroniser } from '../../src/lib/fileAttente';
 import { dateISO, parseMontant, saisieInvalide } from '../../src/lib/format';
 import type { ElementFile, SaisieVeille } from '../../src/lib/types';
 import { couleurs, polices } from '../../src/theme';
+import { LogoMinoterie } from '../../src/components/LogoMinoterie';
 
 const MONTANTS_VIDES = Object.fromEntries(CLES_MONTANTS.map((c) => [c, ''])) as Record<CleMontant, string>;
 
@@ -187,6 +188,7 @@ export default function EcranReleve() {
   // ----- Rendu -----------------------------------------------------------------
   return (
     <SafeAreaView style={s.page} edges={['top']}>
+      <LogoMinoterie />
       <View style={s.entete}>
         <View style={{ flex: 1 }}>
           <Text style={s.titre}>Nouveau relevé</Text>
