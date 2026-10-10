@@ -50,6 +50,15 @@ Deno.serve(async (req) => {
   switch (corps.action) {
     // Crée le compte de connexion + la fiche tb_utilisateurs
     case 'creer': {
+      // Champs obligatoires d'un enquêteur : nom, prénom, email, fonction et minoterie
+      const manquants = [
+        !String(corps.nom ?? '').trim() && 'nom',
+        !String(corps.prenom ?? '').trim() && 'prénom',
+        !corps.id_fonction && 'fonction',
+        !corps.id_minoterie && 'minoterie',
+      ].filter(Boolean);
+      if (manquants.length > 0) return reponse({ erreur: `Champs obligatoires manquants : ${manquants.join(', ')}.` }, 400);
+
       const motDePasse = String(corps.mot_de_passe ?? '');
       if (motDePasse.length < 8) return reponse({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
 
@@ -68,7 +77,7 @@ Deno.serve(async (req) => {
         nom: String(corps.nom ?? '').trim().toUpperCase(),
         prenom: String(corps.prenom ?? '').trim(),
         phone: corps.phone ? String(corps.phone).trim() : null,
-        id_fonction: corps.id_fonction ?? null,
+        id_fonction: corps.id_fonction,
         id_minoterie: corps.id_minoterie,
       });
       if (e2) {
