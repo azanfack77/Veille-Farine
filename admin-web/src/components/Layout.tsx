@@ -1,6 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useSession } from '../context/Session';
-import { logoMinoterie } from '../lib/logos';
 
 const LIENS = [
   { vers: '/', libelle: 'Tableau de bord' },
@@ -10,24 +9,26 @@ const LIENS = [
   { vers: '/administrateurs', libelle: 'Administrateurs' },
 ];
 
+// Les administrateurs appartiennent au groupe : la console affiche le logo du groupe.
+// (Les enquêteurs voient le logo de leur société, CADYST GRAIN ou SGMC, dans l'application mobile.)
+const LOGO_GROUPE = { src: '/logo-cadyst.png', alt: 'Groupe CADYST' };
+
 /** Logo du groupe, en bas de chaque page. */
 export function PiedDePage() {
   return (
     <footer className="pied-page">
-      <img src="/logo-cadyst.png" alt="Groupe CADYST" className="pied-page-logo" />
+      <img src={LOGO_GROUPE.src} alt={LOGO_GROUPE.alt} className="pied-page-logo" />
     </footer>
   );
 }
 
 export function Layout() {
-  const { session, deconnecter, ref, idMinoterie } = useSession();
-  const nomMinoterie = ref?.minoteries.find((m) => m.id_minoterie === idMinoterie)?.nom_minoterie;
-  const logo = logoMinoterie(nomMinoterie);
+  const { session, deconnecter } = useSession();
   return (
     <div className="coque">
       <aside className="barre">
         <div className="barre-logo">
-          <img src={logo.src} alt={logo.alt} />
+          <img src={LOGO_GROUPE.src} alt={LOGO_GROUPE.alt} />
         </div>
         <div className="barre-marque">
           <span className="barre-titre">Veille Farines</span>

@@ -1,30 +1,16 @@
 import type { Session } from '@supabase/supabase-js';
 import type { Referentiel } from './types';
 
-// Mode démonstration : saute la connexion pour voir les pages internes et le logo de chaque société.
+// Mode démonstration : saute la connexion pour voir les pages internes.
 // Actif uniquement en développement, avec VITE_DEMO=1 (voir « npm run demo »).
-// La société se choisit dans l'adresse : ?societe=sgmc ou ?societe=cadyst (mémorisée pour l'onglet).
 // Aucune session Supabase n'existe : les pages qui lisent la base affichent une erreur de droits.
 export const MODE_DEMO = import.meta.env.DEV && import.meta.env.VITE_DEMO === '1';
 
 const ID_CADYST_GRAIN = 3;
 const ID_SGMC = 9;
 
-function societeDemo(): number {
-  const demandee = new URLSearchParams(window.location.search).get('societe');
-  try {
-    if (demandee) sessionStorage.setItem('veille:demo_societe', demandee);
-    const choix = demandee ?? sessionStorage.getItem('veille:demo_societe');
-    return choix?.toLowerCase() === 'sgmc' ? ID_SGMC : ID_CADYST_GRAIN;
-  } catch {
-    return demandee?.toLowerCase() === 'sgmc' ? ID_SGMC : ID_CADYST_GRAIN;
-  }
-}
-
-export const ID_MINOTERIE_DEMO = MODE_DEMO ? societeDemo() : null;
-
 export const SESSION_DEMO = {
-  user: { id: 'demo', email: ID_MINOTERIE_DEMO === ID_SGMC ? 'demo@sgmc.cm' : 'demo@cadyst.com' },
+  user: { id: 'demo', email: 'demo@cadyst.com' },
 } as Session;
 
 // Extrait de supabase/sql/01_farines_db_supabase.sql

@@ -1,6 +1,6 @@
 import type { Session as SessionSupabase } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { ID_MINOTERIE_DEMO, MODE_DEMO, REFERENTIEL_DEMO, SESSION_DEMO } from '../lib/demo';
+import { MODE_DEMO, REFERENTIEL_DEMO, SESSION_DEMO } from '../lib/demo';
 import { inactifTropLongtemps, JOURS_INACTIVITE, noterActivite, oublierActivite } from '../lib/inactivite';
 import { chargerReferentiel } from '../lib/referentiel';
 import { supabase } from '../lib/supabase';
@@ -15,7 +15,6 @@ type Etat = {
   rechargerRef: () => Promise<void>;
   deconnecter: () => Promise<void>;
   motifDeconnexion: string | null; // affiché sur l'écran de connexion
-  idMinoterie: number | null; // minoterie de la personne connectée (fiche tb_utilisateurs), si elle en a une
   recuperation: boolean; // ouvert depuis un lien « mot de passe oublié »
   terminerRecuperation: () => void;
 };
@@ -48,7 +47,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ref, setRef] = useState<Referentiel | null>(null);
   const [erreurRef, setErreurRef] = useState<string | null>(null);
   const [motifDeconnexion, setMotifDeconnexion] = useState<string | null>(null);
-  const [idMinoterie, setIdMinoterie] = useState<number | null>(null);
   const [recuperation, setRecuperation] = useState(lienRecuperation);
 
   useEffect(() => {
@@ -126,13 +124,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!session) {
       setEstAdmin(null);
       setRef(null);
-      setIdMinoterie(null);
       return;
     }
     if (MODE_DEMO) {
       setEstAdmin(true);
       setRef(REFERENTIEL_DEMO);
-      setIdMinoterie(ID_MINOTERIE_DEMO);
       return;
     }
     setEstAdmin(null);
@@ -141,14 +137,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setEstAdmin(admin);
       if (admin) rechargerRef();
     });
-    // Société de la personne connectée, pour afficher son logo
-    supabase
-      .from('tb_utilisateurs')
-      .select('id_minoterie')
-      .ilike('email', session.user.email ?? '')
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => setIdMinoterie((data?.id_minoterie as number | undefined) ?? null));
   }, [session?.user.id, rechargerRef]);
 
   const deconnecter = useCallback(async () => {
@@ -161,7 +149,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const terminerRecuperation = useCallback(() => setRecuperation(false), []);
 
   return (
-    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter, motifDeconnexion, idMinoterie, recuperation, terminerRecuperation }}>
+    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter, motifDeconnexion, recuperation, terminerRecuperation }}>
       {children}
     </Contexte.Provider>
   );
