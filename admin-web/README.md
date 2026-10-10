@@ -13,15 +13,15 @@ que l'application mobile.
   Vous pouvez corriger un relevé (date, ville, montants), et le net rendu est recalculé par la base.
   Vous pouvez aussi supprimer un relevé, ou exporter la sélection en CSV (s'ouvre directement dans Excel).
 - **Enquêteurs** : création du compte de connexion et de la fiche en une seule étape, modification,
-  désactivation. Il n'y a pas de mot de passe : la connexion se fait par code reçu par email. Un enquêteur désactivé ne peut plus se connecter ni saisir,
+  nouveau mot de passe, désactivation. Un enquêteur désactivé ne peut plus se connecter ni saisir,
   et ses relevés sont conservés.
 - **Listes de référence** : marques, minoteries, régions, villes, gammes, segments, tailles de sac,
   fonctions, et la grille « sacs par gamme ». Un élément déjà utilisé ne peut pas être supprimé :
   la console l'explique au lieu d'échouer silencieusement.
 - **Administrateurs** : ajout et retrait des personnes qui ont accès à la console (le compte de
-  connexion est créé automatiquement).
-- **Connexion** par code reçu par email, sans mot de passe. La session est fermée après 60 jours
-  sans utilisation de la console.
+  connexion est créé automatiquement, avec un mot de passe provisoire affiché à l'écran).
+- **Connexion** par email et mot de passe, avec « Mot de passe oublié ». La session est fermée après
+  60 jours sans utilisation de la console.
 
 ## Installation
 
@@ -34,7 +34,7 @@ Dans Supabase > SQL Editor, exécutez **`../supabase/sql/03_migration_admin.sql`
 INSERT INTO tb_administrateurs (email) VALUES ('votre.email@entreprise.cm');
 ```
 
-Ce compte doit aussi exister dans *Authentication > Users* (voir « Connexion par code » dans le
+Ce compte doit aussi exister dans *Authentication > Users* (voir « Connexion et emails » dans le
 README principal pour les réglages d'email).
 
 ### 2. Fonction de gestion des comptes
@@ -52,7 +52,8 @@ supabase functions deploy admin-utilisateurs --no-verify-jwt
 L'option `--no-verify-jwt` est recommandée avec les nouvelles clés Supabase (`sb_publishable_…`) :
 la fonction vérifie elle-même, auprès de la base, que l'appelant est administrateur.
 
-Sans cette fonction, toute la console fonctionne, sauf la création et le blocage des comptes. Dans ce cas, créez les comptes à la main dans *Authentication > Users*.
+Sans cette fonction, toute la console fonctionne, sauf la création, le changement de mot de passe
+et le blocage des comptes. Dans ce cas, créez les comptes à la main dans *Authentication > Users*.
 
 ### 3. Lancer la console
 

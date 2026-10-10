@@ -1,5 +1,6 @@
 import type { Session as SessionSupabase } from '@supabase/supabase-js';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { ID_MINOTERIE_DEMO, MODE_DEMO, REFERENTIEL_DEMO, SESSION_DEMO } from '../lib/demo';
 import { inactifTropLongtemps, JOURS_INACTIVITE, noterActivite, oublierActivite } from '../lib/inactivite';
 import { chargerReferentiel } from '../lib/referentiel';
 import { supabase } from '../lib/supabase';
@@ -15,7 +16,23 @@ type Etat = {
   deconnecter: () => Promise<void>;
   motifDeconnexion: string | null; // affiché sur l'écran de connexion
   idMinoterie: number | null; // minoterie de la personne connectée (fiche tb_utilisateurs), si elle en a une
+  recuperation: boolean; // ouvert depuis un lien « mot de passe oublié »
+  terminerRecuperation: () => void;
 };
+
+// Lien de réinitialisation : à lire avant que Supabase ne nettoie l'URL
+const lienRecuperation = /type=recovery/.test(window.location.hash);
+const parametresLien = new URLSearchParams(window.location.hash.slice(1));
+// Ouvrir le lien reçu par email est une utilisation : sans cela, une personne inactive depuis
+// 60 jours serait déconnectée aussitôt arrivée et ne pourrait pas changer son mot de passe.
+if (lienRecuperation) noterActivite();
+
+/** Message à afficher si le lien reçu par email est expiré ou invalide. */
+export const erreurLien: string | null = parametresLien.get('error_code')
+  ? parametresLien.get('error_code') === 'otp_expired'
+    ? 'Ce lien a expiré ou a déjà été utilisé. Demandez un nouveau lien ci-dessous.'
+    : parametresLien.get('error_description')
+  : null;
 
 // Contrôle d'inactivité au retour sur l'onglet et toutes les heures (un onglet resté ouvert sans
 // être utilisé ne compte pas comme une activité ; seuls les clics et frappes clavier comptent).
@@ -32,8 +49,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [erreurRef, setErreurRef] = useState<string | null>(null);
   const [motifDeconnexion, setMotifDeconnexion] = useState<string | null>(null);
   const [idMinoterie, setIdMinoterie] = useState<number | null>(null);
+  const [recuperation, setRecuperation] = useState(lienRecuperation);
 
   useEffect(() => {
+    if (MODE_DEMO) {
+      setSession(SESSION_DEMO);
+      setPret(true);
+      return;
+    }
     /** Ferme la session si la console n'a pas servi depuis 60 jours, sinon note l'activité. */
     const verifierInactivite = async (s: SessionSupabase | null): Promise<SessionSupabase | null> => {
       if (!s) return null;
@@ -41,7 +64,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         oublierActivite();
         await supabase.auth.signOut({ scope: 'local' });
         setMotifDeconnexion(
-          `Vous avez été déconnecté après ${JOURS_INACTIVITE} jours sans utilisation. Reconnectez-vous avec un code reçu par email.`,
+          `Vous avez été déconnecté après ${JOURS_INACTIVITE} jours sans utilisation. Reconnectez-vous.`,
         );
         return null;
       }
@@ -70,6 +93,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
     const { data } = supabase.auth.onAuthStateChange((evenement, s) => {
       if (evenement === 'INITIAL_SESSION') return; // traité par getSession, après le contrôle d'inactivité
+      if (evenement === 'PASSWORD_RECOVERY') setRecuperation(true);
       // L'activité est notée par l'écran de connexion, pas ici : Supabase émet aussi SIGNED_IN
       // au retour sur l'onglet, ce qui remettrait le compteur à zéro sans vraie utilisation.
       if (evenement === 'SIGNED_IN') setMotifDeconnexion(null);
@@ -105,6 +129,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setIdMinoterie(null);
       return;
     }
+    if (MODE_DEMO) {
+      setEstAdmin(true);
+      setRef(REFERENTIEL_DEMO);
+      setIdMinoterie(ID_MINOTERIE_DEMO);
+      return;
+    }
     setEstAdmin(null);
     supabase.rpc('fn_est_admin').then(({ data, error }) => {
       const admin = !error && data === true;
@@ -122,12 +152,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [session?.user.id, rechargerRef]);
 
   const deconnecter = useCallback(async () => {
+    if (MODE_DEMO) return;
+    setRecuperation(false);
     oublierActivite();
     await supabase.auth.signOut();
   }, []);
 
+  const terminerRecuperation = useCallback(() => setRecuperation(false), []);
+
   return (
-    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter, motifDeconnexion, idMinoterie }}>
+    <Contexte.Provider value={{ session, estAdmin, pret, ref, erreurRef, rechargerRef, deconnecter, motifDeconnexion, idMinoterie, recuperation, terminerRecuperation }}>
       {children}
     </Contexte.Provider>
   );

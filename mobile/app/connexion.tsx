@@ -7,17 +7,20 @@ import { noterActivite } from '../src/lib/inactivite';
 import { supabase } from '../src/lib/supabase';
 import { couleurs, polices } from '../src/theme';
 
-// Connexion sans mot de passe : un code à usage unique est envoyé par email.
-// Le modèle d'email « Magic Link » de Supabase doit contenir {{ .Token }} (voir le README).
+// Deux façons de se connecter : email + mot de passe (par défaut), ou code à usage unique reçu par
+// email (pratique en cas d'oubli du mot de passe). Pour le code, le modèle d'email « Magic Link »
+// de Supabase doit contenir {{ .Token }} (voir le README).
 
 const ATTENTE_RENVOI_S = 60; // Supabase refuse un nouvel envoi avant 60 secondes
 
 type Message = { ton: 'erreur' | 'succes' | 'info'; texte: string };
+type Etape = 'motDePasse' | 'email' | 'code';
 
 export default function EcranConnexion() {
   const { motifDeconnexion } = useAuth();
-  const [etape, setEtape] = useState<'email' | 'code'>('email');
+  const [etape, setEtape] = useState<Etape>('motDePasse');
   const [email, setEmail] = useState('');
+  const [motDePasse, setMotDePasse] = useState('');
   const [code, setCode] = useState('');
   const [chargement, setChargement] = useState(false);
   const [renvoiDans, setRenvoiDans] = useState(0);
@@ -30,6 +33,34 @@ export default function EcranConnexion() {
     const minuteur = setTimeout(() => setRenvoiDans((s) => s - 1), 1000);
     return () => clearTimeout(minuteur);
   }, [renvoiDans]);
+
+  const seConnecter = async () => {
+    setMessage(null);
+    if (!email.trim() || !motDePasse) {
+      setMessage({ ton: 'erreur', texte: 'Saisissez votre email et votre mot de passe.' });
+      return;
+    }
+    setChargement(true);
+    await noterActivite(); // avant la connexion : le contrôle d'inactivité ne doit pas la refuser
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: motDePasse });
+    setChargement(false);
+    if (error) {
+      setMessage({
+        ton: 'erreur',
+        texte: /invalid/i.test(error.message)
+          ? 'Email ou mot de passe incorrect.'
+          : /banned/i.test(error.message)
+            ? "Ce compte est désactivé. Contactez l'administrateur."
+            : 'Connexion impossible. Vérifiez votre accès à internet puis réessayez.',
+      });
+    }
+  };
+
+  const allerA = (e: Etape) => {
+    setEtape(e);
+    setCode('');
+    setMessage(null);
+  };
 
   const envoyerCode = async () => {
     setMessage(null);
@@ -75,12 +106,6 @@ export default function EcranConnexion() {
     // En cas de succès, la redirection est faite par la garde de navigation (app/_layout.tsx)
   };
 
-  const changerEmail = () => {
-    setEtape('email');
-    setCode('');
-    setMessage(null);
-  };
-
   return (
     <SafeAreaView style={s.page}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -90,7 +115,37 @@ export default function EcranConnexion() {
             <Text style={s.sousTitre}>Relevés de prix des minoteries sur le terrain</Text>
           </View>
 
-          {etape === 'email' ? (
+          {etape === 'motDePasse' ? (
+            <View style={s.formulaire}>
+              <Text style={s.libelle}>Email professionnel</Text>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                style={s.saisie}
+                placeholder="prenom.nom@entreprise.cm"
+                placeholderTextColor="#98A2AD"
+                returnKeyType="next"
+              />
+              <Text style={s.libelle}>Mot de passe</Text>
+              <TextInput
+                value={motDePasse}
+                onChangeText={setMotDePasse}
+                secureTextEntry
+                autoComplete="password"
+                textContentType="password"
+                style={s.saisie}
+                onSubmitEditing={seConnecter}
+                returnKeyType="go"
+              />
+              {message ? <Bandeau ton={message.ton}>{message.texte}</Bandeau> : null}
+              <Bouton titre="Se connecter" onPress={seConnecter} chargement={chargement} style={{ marginTop: 8 }} />
+              <Bouton titre="Se connecter avec un code reçu par email" variante="discret" onPress={() => allerA('email')} />
+            </View>
+          ) : etape === 'email' ? (
             <View style={s.formulaire}>
               <Text style={s.libelle}>Email professionnel</Text>
               <TextInput
@@ -106,9 +161,10 @@ export default function EcranConnexion() {
                 onSubmitEditing={envoyerCode}
                 returnKeyType="send"
               />
-              <Text style={s.aide}>Vous recevrez un code de connexion par email. Aucun mot de passe n'est nécessaire.</Text>
+              <Text style={s.aide}>Vous recevrez un code de connexion par email, sans avoir besoin de votre mot de passe.</Text>
               {message ? <Bandeau ton={message.ton}>{message.texte}</Bandeau> : null}
               <Bouton titre="Recevoir un code" onPress={envoyerCode} chargement={chargement} style={{ marginTop: 8 }} />
+              <Bouton titre="Se connecter avec un mot de passe" variante="discret" onPress={() => allerA('motDePasse')} />
             </View>
           ) : (
             <View style={s.formulaire}>
@@ -136,7 +192,8 @@ export default function EcranConnexion() {
                 onPress={envoyerCode}
                 desactive={renvoiDans > 0 || chargement}
               />
-              <Bouton titre="Changer d'email" variante="discret" onPress={changerEmail} />
+              <Bouton titre="Changer d'email" variante="discret" onPress={() => allerA('email')} />
+              <Bouton titre="Se connecter avec un mot de passe" variante="discret" onPress={() => allerA('motDePasse')} />
             </View>
           )}
         </ScrollView>

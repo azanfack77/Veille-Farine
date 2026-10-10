@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await oublierActivite();
         await supabase.auth.signOut({ scope: 'local' });
         setMotifDeconnexion(
-          `Vous avez été déconnecté après ${JOURS_INACTIVITE} jours sans utilisation. Reconnectez-vous avec un code reçu par email.`,
+          `Vous avez été déconnecté après ${JOURS_INACTIVITE} jours sans utilisation. Reconnectez-vous avec votre mot de passe ou un code reçu par email.`,
         );
         return null;
       }

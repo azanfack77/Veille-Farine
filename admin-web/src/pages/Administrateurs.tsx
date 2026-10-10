@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Champ, Chargement, EnTetePage, Message } from '../components/ui';
 import { useSession } from '../context/Session';
 import { formatDate } from '../lib/format';
+import { genererMotDePasse } from '../lib/motDePasse';
 import { appelerGestionComptes, messageErreur, supabase } from '../lib/supabase';
 
 type Admin = { id_administrateur: number; email: string; cree_le: string };
@@ -30,10 +31,16 @@ export function Administrateurs() {
       setMessage({ ton: 'erreur', texte: messageErreur(error) });
       return;
     }
-    // Crée le compte de connexion s'il n'existe pas encore (connexion par code reçu par email)
+    // Crée le compte de connexion avec un mot de passe provisoire s'il n'existe pas encore
+    const motDePasse = genererMotDePasse();
     try {
-      await appelerGestionComptes({ action: 'compte', email: adresse });
-      setMessage({ ton: 'succes', texte: `${adresse} est administrateur : il se connecte avec un code reçu par email.` });
+      const { cree } = await appelerGestionComptes({ action: 'compte', email: adresse, mot_de_passe: motDePasse });
+      setMessage({
+        ton: 'succes',
+        texte: cree
+          ? `${adresse} est administrateur. Mot de passe provisoire : ${motDePasse}. Transmettez-le-lui de façon sûre ; il pourra le changer avec « Mot de passe oublié ».`
+          : `${adresse} est administrateur. Il se connecte avec le mot de passe de son compte existant.`,
+      });
     } catch (err) {
       setMessage({
         ton: 'erreur',

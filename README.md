@@ -14,20 +14,25 @@ Collecte terrain des prix des minoteries concurrentes, avec :
 ### 1. Base de données
 
 Dans Supabase > SQL Editor, exécutez dans l'ordre `01_…`, `02_…`, `03_…` du dossier `supabase/sql/`.
-Puis créez votre compte dans *Authentication > Users > Add user > Create new user* (cochez
-*Auto Confirm User* ; si un mot de passe est demandé, mettez-en un au hasard : il ne sert pas) et
-déclarez-vous administrateur :
+Puis créez votre compte dans *Authentication > Users > Add user > Create new user* (email + mot de
+passe, cochez *Auto Confirm User*) et déclarez-vous administrateur :
 
 ```sql
 INSERT INTO tb_administrateurs (email) VALUES ('votre.email@...');
 ```
 
-Les administrateurs suivants s'ajoutent depuis la console, qui crée leur compte de connexion.
+Les administrateurs suivants s'ajoutent depuis la console, qui crée leur compte de connexion avec un
+mot de passe provisoire.
 
-### 1 bis. Connexion par code reçu par email
+### 1 bis. Connexion et emails
 
-Les deux applications n'utilisent **pas de mot de passe** : l'utilisateur saisit son email, reçoit un
-code, et le recopie. Dans Supabase :
+| Application | Connexion |
+|---|---|
+| Console web | email + mot de passe ; « Mot de passe oublié » envoie un lien de réinitialisation |
+| Application mobile | email + mot de passe, **ou** code à usage unique reçu par email |
+
+Les mots de passe sont choisis à la création du compte dans la console (page *Enquêteurs*, ou
+*Administrateurs*), et peuvent être changés depuis la page *Enquêteurs*. Dans Supabase :
 
 1. **Envoi des emails (obligatoire)** : *Authentication > Emails > SMTP Settings*, renseignez un
    serveur SMTP (messagerie de l'entreprise, Brevo, SendGrid…). Sans cela, Supabase n'envoie des
@@ -37,13 +42,16 @@ code, et le recopie. Dans Supabase :
    [`supabase/templates/code-connexion.html`](supabase/templates/code-connexion.html) (il affiche
    le code `{{ .Token }}` en grand).
 
-   Sans `{{ .Token }}`, l'email contient un lien au lieu d'un code, et la connexion échoue.
+   Sans `{{ .Token }}`, l'email contient un lien au lieu d'un code, et la connexion par code de
+   l'application mobile échoue.
+   Pour « Mot de passe oublié », mettez aussi l'adresse de la console dans *Authentication > URL
+   Configuration > Site URL* (étape 5).
 3. **Inscriptions** : *Authentication > Sign In / Providers > Email*, désactivez *Allow new users to
    sign up*. Seuls les comptes créés depuis la console peuvent se connecter.
 
 **Déconnexion après 60 jours d'inactivité** : chaque application ferme la session si elle n'a pas
 été utilisée pendant 60 jours (application mobile non ouverte ; console sans clic ni frappe). Il faut
-alors redemander un code. Avec un abonnement Supabase Pro, vous pouvez ajouter la même règle côté
+alors se reconnecter. Avec un abonnement Supabase Pro, vous pouvez ajouter la même règle côté
 serveur : *Authentication > Sessions > Inactivity timeout* = `1440` heures.
 
 > ⚠️ `01_farines_db_supabase.sql` commence par supprimer les tables. Ne le relancez jamais une

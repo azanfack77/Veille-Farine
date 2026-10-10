@@ -1,5 +1,5 @@
 // Fonction Edge Supabase : gestion des comptes de connexion des enquêteurs et administrateurs.
-// La connexion se fait par code envoyé par email : les comptes n'ont pas de mot de passe.
+// Console web : connexion par mot de passe. Application mobile : mot de passe ou code reçu par email.
 // La clé "service_role" nécessaire pour créer un compte ne doit jamais être
 // dans le navigateur : elle reste ici, côté serveur.
 //
@@ -50,7 +50,14 @@ Deno.serve(async (req) => {
   switch (corps.action) {
     // Crée le compte de connexion + la fiche tb_utilisateurs
     case 'creer': {
-      const { data: cree, error: e1 } = await admin.auth.admin.createUser({ email, email_confirm: true });
+      const motDePasse = String(corps.mot_de_passe ?? '');
+      if (motDePasse.length < 8) return reponse({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
+
+      const { data: cree, error: e1 } = await admin.auth.admin.createUser({
+        email,
+        password: motDePasse,
+        email_confirm: true,
+      });
       if (e1) {
         const deja = /already|registered|exists/i.test(e1.message);
         return reponse({ erreur: deja ? 'Un compte de connexion existe déjà pour cet email.' : e1.message }, 400);
@@ -71,17 +78,29 @@ Deno.serve(async (req) => {
       return reponse({ ok: true });
     }
 
-    // Crée seulement le compte de connexion, s'il n'existe pas (nouvel administrateur)
+    // Crée seulement le compte de connexion s'il n'existe pas (nouvel administrateur).
+    // Renvoie cree: false si le compte existait déjà : son mot de passe n'est alors pas modifié.
     case 'compte': {
-      const { error } = await admin.auth.admin.createUser({ email, email_confirm: true });
-      if (error && !/already|registered|exists/i.test(error.message)) return reponse({ erreur: error.message }, 400);
-      return reponse({ ok: true });
+      const motDePasse = String(corps.mot_de_passe ?? '');
+      if (motDePasse.length < 8) return reponse({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
+      const { error } = await admin.auth.admin.createUser({ email, password: motDePasse, email_confirm: true });
+      if (!error) return reponse({ ok: true, cree: true });
+      if (/already|registered|exists/i.test(error.message)) return reponse({ ok: true, cree: false });
+      return reponse({ erreur: error.message }, 400);
     }
 
-    // Blocage / déblocage de la connexion
+    // Nouveau mot de passe, ou blocage / déblocage de la connexion
+    case 'mot_de_passe':
     case 'bloquer': {
       const utilisateur = await trouverParEmail(admin, email);
       if (!utilisateur) return reponse({ erreur: 'Aucun compte de connexion pour cet email.' }, 404);
+
+      if (corps.action === 'mot_de_passe') {
+        const motDePasse = String(corps.mot_de_passe ?? '');
+        if (motDePasse.length < 8) return reponse({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
+        const { error } = await admin.auth.admin.updateUserById(utilisateur.id, { password: motDePasse });
+        return error ? reponse({ erreur: error.message }, 400) : reponse({ ok: true });
+      }
 
       const { error } = await admin.auth.admin.updateUserById(utilisateur.id, {
         ban_duration: corps.bloque ? '876000h' : 'none',

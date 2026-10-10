@@ -230,7 +230,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
 .connexion-sous-titre { color: var(--ble); font-size: 19px; font-weight: 500; margin: 20px 0 0; max-width: 28ch; }
 .connexion-cote { display: flex; flex-direction: column; align-items: center; padding: 32px 0 20px; }
 .connexion-formulaire { margin: auto 0; width: min(380px, 90%); display: flex; flex-direction: column; gap: 16px; }
-.champ input.saisie-code { font-family: var(--chiffre); font-size: 26px; letter-spacing: 6px; text-align: center; }
 /* ---------- Pied de page ---------- */
 .pied-page { margin-top: auto; padding-top: 28px; display: flex; justify-content: center; }
 .pied-page-logo { height: 44px; width: auto; opacity: 0.9; }
