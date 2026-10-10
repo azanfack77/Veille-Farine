@@ -147,4 +147,4 @@ npm run demo
 Ouvre l'application dans le navigateur (http://localhost:8081, affichage téléphone avec F12 puis
 Ctrl+Maj+M), **sans connexion** et avec des listes d'exemple. Les relevés restent sur l'ordinateur et
 ne sont jamais envoyés à la base. Ce mode n'existe qu'en développement : l'APK affiche toujours
-l'écran de connexion. Le calendrier « Autre date » ne fonctionne pas dans le navigateur.
+l'écran de connexion.
