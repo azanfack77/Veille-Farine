@@ -2,7 +2,8 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Champ, Chargement, EnTetePage, Message } from '../components/ui';
 import { useSession } from '../context/Session';
 import { formatDate } from '../lib/format';
-import { messageErreur, supabase } from '../lib/supabase';
+import { genererMotDePasse } from '../lib/motDePasse';
+import { appelerGestionComptes, messageErreur, supabase } from '../lib/supabase';
 
 type Admin = { id_administrateur: number; email: string; cree_le: string };
 
@@ -24,16 +25,30 @@ export function Administrateurs() {
 
   const ajouter = async (e: FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('tb_administrateurs').insert({ email: email.trim().toLowerCase() });
-    if (error) setMessage({ ton: 'erreur', texte: messageErreur(error) });
-    else {
+    const adresse = email.trim().toLowerCase();
+    const { error } = await supabase.from('tb_administrateurs').insert({ email: adresse });
+    if (error) {
+      setMessage({ ton: 'erreur', texte: messageErreur(error) });
+      return;
+    }
+    // Crée le compte de connexion avec un mot de passe provisoire s'il n'existe pas encore
+    const motDePasse = genererMotDePasse();
+    try {
+      const { cree } = await appelerGestionComptes({ action: 'compte', email: adresse, mot_de_passe: motDePasse });
       setMessage({
         ton: 'succes',
-        texte: `${email.trim()} est administrateur. S'il n'a pas encore de compte, créez-le dans Supabase (Authentication > Users).`,
+        texte: cree
+          ? `${adresse} est administrateur. Mot de passe provisoire : ${motDePasse}. Transmettez-le-lui de façon sûre ; il pourra le changer avec « Mot de passe oublié ».`
+          : `${adresse} est administrateur. Il se connecte avec le mot de passe de son compte existant.`,
       });
-      setEmail('');
-      charger();
+    } catch (err) {
+      setMessage({
+        ton: 'erreur',
+        texte: `${adresse} est administrateur, mais son compte de connexion n'a pas pu être créé : ${messageErreur(err)}`,
+      });
     }
+    setEmail('');
+    charger();
   };
 
   const retirer = async (a: Admin) => {

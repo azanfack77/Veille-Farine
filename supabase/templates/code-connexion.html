@@ -1,0 +1,13 @@
+<!--
+  Modèle d'email du code de connexion (applications mobile et console).
+  À coller dans Supabase > Authentication > Emails > Templates > « Magic Link ».
+  Sujet : Votre code de connexion Veille Farines
+  {{ .Token }} est remplacé par Supabase par le code à usage unique.
+-->
+<div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1f2933;">
+  <p style="font-size: 20px; font-weight: bold; color: #27348B; margin: 0 0 16px;">Veille Farines</p>
+  <p style="font-size: 15px; margin: 0 0 16px;">Voici votre code de connexion :</p>
+  <p style="font-size: 34px; font-weight: bold; letter-spacing: 8px; text-align: center; background: #eef0f8; color: #27348B; padding: 16px; border-radius: 10px; margin: 0 0 16px;">{{ .Token }}</p>
+  <p style="font-size: 14px; color: #5b6775; margin: 0 0 8px;">Saisissez-le dans l'application. Il expire dans une heure et ne peut servir qu'une fois.</p>
+  <p style="font-size: 13px; color: #5b6775; margin: 0;">Si vous n'avez pas demandé ce code, ignorez cet email : personne ne peut se connecter sans lui.</p>
+</div>

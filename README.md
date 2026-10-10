@@ -14,11 +14,45 @@ Collecte terrain des prix des minoteries concurrentes, avec :
 ### 1. Base de données
 
 Dans Supabase > SQL Editor, exécutez dans l'ordre `01_…`, `02_…`, `03_…` du dossier `supabase/sql/`.
-Puis créez votre compte dans *Authentication > Users* et déclarez-vous administrateur :
+Puis créez votre compte dans *Authentication > Users > Add user > Create new user* (email + mot de
+passe, cochez *Auto Confirm User*) et déclarez-vous administrateur :
 
 ```sql
 INSERT INTO tb_administrateurs (email) VALUES ('votre.email@...');
 ```
+
+Les administrateurs suivants s'ajoutent depuis la console, qui crée leur compte de connexion avec un
+mot de passe provisoire.
+
+### 1 bis. Connexion et emails
+
+| Application | Connexion |
+|---|---|
+| Console web | email + mot de passe ; « Mot de passe oublié » envoie un lien de réinitialisation |
+| Application mobile | email + mot de passe, **ou** code à usage unique reçu par email |
+
+Les mots de passe sont choisis à la création du compte dans la console (page *Enquêteurs*, ou
+*Administrateurs*), et peuvent être changés depuis la page *Enquêteurs*. Dans Supabase :
+
+1. **Envoi des emails (obligatoire)** : *Authentication > Emails > SMTP Settings*, renseignez un
+   serveur SMTP (messagerie de l'entreprise, Brevo, SendGrid…). Sans cela, Supabase n'envoie des
+   emails qu'aux membres de l'équipe du projet Supabase, et seulement quelques-uns par heure.
+2. **Modèle d'email (obligatoire)** : *Authentication > Emails > Templates > Magic Link*, mettez le
+   sujet `Votre code de connexion Veille Farines` et collez dans le corps le contenu de
+   [`supabase/templates/code-connexion.html`](supabase/templates/code-connexion.html) (il affiche
+   le code `{{ .Token }}` en grand).
+
+   Sans `{{ .Token }}`, l'email contient un lien au lieu d'un code, et la connexion par code de
+   l'application mobile échoue.
+   Pour « Mot de passe oublié », mettez aussi l'adresse de la console dans *Authentication > URL
+   Configuration > Site URL* (étape 5).
+3. **Inscriptions** : *Authentication > Sign In / Providers > Email*, désactivez *Allow new users to
+   sign up*. Seuls les comptes créés depuis la console peuvent se connecter.
+
+**Déconnexion après 60 jours d'inactivité** : chaque application ferme la session si elle n'a pas
+été utilisée pendant 60 jours (application mobile non ouverte ; console sans clic ni frappe). Il faut
+alors se reconnecter. Avec un abonnement Supabase Pro, vous pouvez ajouter la même règle côté
+serveur : *Authentication > Sessions > Inactivity timeout* = `1440` heures.
 
 > ⚠️ `01_farines_db_supabase.sql` commence par supprimer les tables. Ne le relancez jamais une
 > fois la collecte commencée. C'est pour cette raison qu'aucun script SQL n'est automatisé.
@@ -68,8 +102,16 @@ Ensuite, dans l'onglet *Actions*, lancez une fois « Supabase - fonction admin-u
 ### 5. Relier Netlify
 
 Sur app.netlify.com, cliquez sur *Add new site*, puis *Import an existing project*, puis choisissez
-GitHub et le dépôt `veille-farines`. Netlify lit `netlify.toml` : ne changez aucun réglage et cliquez
-sur **Deploy**.
+GitHub et le dépôt `veille-farines`. Netlify lit `netlify.toml` : ne changez aucun réglage de
+construction. Avant de cliquer sur **Deploy**, ajoutez dans *Environment variables* :
+
+| Nom | Valeur |
+|---|---|
+| `VITE_SUPABASE_URL` | l'URL du projet Supabase (voir `admin-web/.env.example`) |
+| `VITE_SUPABASE_ANON_KEY` | la clé **publishable** (ou ancienne clé `anon`) |
+
+Sans ces deux variables, la console affiche « configuration manquante ». Si vous les ajoutez
+après coup, relancez une publication (*Deploys > Trigger deploy*).
 
 Ensuite, dans Supabase, ouvrez *Authentication > URL Configuration* et mettez l'adresse Netlify
 dans *Site URL*.
@@ -87,6 +129,22 @@ dans *Site URL*.
 ## À propos des fichiers `.env`
 
 Ils ne contiennent que l'URL du projet et la clé **publishable**, qui est publique par conception
-(la sécurité repose sur les règles RLS de la base). Ils sont donc versionnés pour que Netlify et
-Expo puissent construire. N'ajoutez **jamais** la clé secrète (`sb_secret_…` / `service_role`) au
-dépôt.
+(la sécurité repose sur les règles RLS de la base).
+
+- `mobile/.env` est versionné : EAS Build en a besoin pour construire l'APK.
+- `admin-web/.env` n'est **pas** versionné : copiez `admin-web/.env.example` pour travailler en
+  local, et renseignez les variables dans Netlify (étape 5).
+
+N'ajoutez **jamais** la clé secrète (`sb_secret_…` / `service_role`) au dépôt.
+
+## Tester l'application mobile sur l'ordinateur
+
+```bash
+cd mobile
+npm run demo
+```
+
+Ouvre l'application dans le navigateur (http://localhost:8081, affichage téléphone avec F12 puis
+Ctrl+Maj+M), **sans connexion** et avec des listes d'exemple. Les relevés restent sur l'ordinateur et
+ne sont jamais envoyés à la base. Ce mode n'existe qu'en développement : l'APK affiche toujours
+l'écran de connexion. Le calendrier « Autre date » ne fonctionne pas dans le navigateur.

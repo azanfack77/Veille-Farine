@@ -1,4 +1,5 @@
-// Fonction Edge Supabase : gestion des comptes de connexion des enquêteurs.
+// Fonction Edge Supabase : gestion des comptes de connexion des enquêteurs et administrateurs.
+// Console web : connexion par mot de passe. Application mobile : mot de passe ou code reçu par email.
 // La clé "service_role" nécessaire pour créer un compte ne doit jamais être
 // dans le navigateur : elle reste ici, côté serveur.
 //
@@ -49,6 +50,15 @@ Deno.serve(async (req) => {
   switch (corps.action) {
     // Crée le compte de connexion + la fiche tb_utilisateurs
     case 'creer': {
+      // Champs obligatoires d'un enquêteur : nom, prénom, email, fonction et minoterie
+      const manquants = [
+        !String(corps.nom ?? '').trim() && 'nom',
+        !String(corps.prenom ?? '').trim() && 'prénom',
+        !corps.id_fonction && 'fonction',
+        !corps.id_minoterie && 'minoterie',
+      ].filter(Boolean);
+      if (manquants.length > 0) return reponse({ erreur: `Champs obligatoires manquants : ${manquants.join(', ')}.` }, 400);
+
       const motDePasse = String(corps.mot_de_passe ?? '');
       if (motDePasse.length < 8) return reponse({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
 
@@ -67,7 +77,7 @@ Deno.serve(async (req) => {
         nom: String(corps.nom ?? '').trim().toUpperCase(),
         prenom: String(corps.prenom ?? '').trim(),
         phone: corps.phone ? String(corps.phone).trim() : null,
-        id_fonction: corps.id_fonction ?? null,
+        id_fonction: corps.id_fonction,
         id_minoterie: corps.id_minoterie,
       });
       if (e2) {
@@ -75,6 +85,17 @@ Deno.serve(async (req) => {
         return reponse({ erreur: e2.message }, 400);
       }
       return reponse({ ok: true });
+    }
+
+    // Crée seulement le compte de connexion s'il n'existe pas (nouvel administrateur).
+    // Renvoie cree: false si le compte existait déjà : son mot de passe n'est alors pas modifié.
+    case 'compte': {
+      const motDePasse = String(corps.mot_de_passe ?? '');
+      if (motDePasse.length < 8) return reponse({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
+      const { error } = await admin.auth.admin.createUser({ email, password: motDePasse, email_confirm: true });
+      if (!error) return reponse({ ok: true, cree: true });
+      if (/already|registered|exists/i.test(error.message)) return reponse({ ok: true, cree: false });
+      return reponse({ erreur: error.message }, 400);
     }
 
     // Nouveau mot de passe, ou blocage / déblocage de la connexion
@@ -89,6 +110,7 @@ Deno.serve(async (req) => {
         const { error } = await admin.auth.admin.updateUserById(utilisateur.id, { password: motDePasse });
         return error ? reponse({ erreur: error.message }, 400) : reponse({ ok: true });
       }
+
       const { error } = await admin.auth.admin.updateUserById(utilisateur.id, {
         ban_duration: corps.bloque ? '876000h' : 'none',
       });

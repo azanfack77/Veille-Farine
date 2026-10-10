@@ -4,14 +4,14 @@ import { Chargement, Message } from './components/ui';
 import { useSession } from './context/Session';
 import { configurationManquante } from './lib/supabase';
 import { Administrateurs } from './pages/Administrateurs';
-import { Connexion } from './pages/Connexion';
+import { Connexion, NouveauMotDePasse } from './pages/Connexion';
 import { Referentiels } from './pages/Referentiels';
 import { Releves } from './pages/Releves';
 import { TableauDeBord } from './pages/TableauDeBord';
 import { Utilisateurs } from './pages/Utilisateurs';
 
 export function App() {
-  const { session, pret, estAdmin, ref, erreurRef, rechargerRef, deconnecter } = useSession();
+  const { session, pret, estAdmin, ref, erreurRef, rechargerRef, deconnecter, recuperation } = useSession();
 
   if (configurationManquante) {
     return (
@@ -25,6 +25,7 @@ export function App() {
   }
   if (!pret) return <Chargement />;
   if (!session) return <Connexion />;
+  if (recuperation) return <NouveauMotDePasse />;
   if (estAdmin === null) return <div className="page-seule"><Chargement texte="Vérification des droits…" /></div>;
   if (!estAdmin) {
     return (

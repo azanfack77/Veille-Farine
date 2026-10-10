@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MODE_DEMO, REFERENTIEL_DEMO } from './demo';
 import { supabase } from './supabase';
 import type { Referentiel } from './types';
 
@@ -17,6 +18,7 @@ export type ResultatReferentiel = { ref: Referentiel; source: 'reseau' | 'cache'
  * Hors ligne, renvoie la dernière copie enregistrée.
  */
 export async function chargerReferentiel(): Promise<ResultatReferentiel> {
+  if (MODE_DEMO) return { ref: REFERENTIEL_DEMO, source: 'cache' };
   try {
     const [regions, villes, grammages, segments, gammes, minoteries, marques, gammeGrammages] =
       await Promise.all([

@@ -18,7 +18,10 @@ que l'application mobile.
 - **Listes de référence** : marques, minoteries, régions, villes, gammes, segments, tailles de sac,
   fonctions, et la grille « sacs par gamme ». Un élément déjà utilisé ne peut pas être supprimé :
   la console l'explique au lieu d'échouer silencieusement.
-- **Administrateurs** : ajout et retrait des personnes qui ont accès à la console.
+- **Administrateurs** : ajout et retrait des personnes qui ont accès à la console (le compte de
+  connexion est créé automatiquement, avec un mot de passe provisoire affiché à l'écran).
+- **Connexion** par email et mot de passe, avec « Mot de passe oublié ». La session est fermée après
+  60 jours sans utilisation de la console.
 
 ## Installation
 
@@ -31,7 +34,8 @@ Dans Supabase > SQL Editor, exécutez **`../supabase/sql/03_migration_admin.sql`
 INSERT INTO tb_administrateurs (email) VALUES ('votre.email@entreprise.cm');
 ```
 
-Ce compte doit aussi exister dans *Authentication > Users*.
+Ce compte doit aussi exister dans *Authentication > Users* (voir « Connexion et emails » dans le
+README principal pour les réglages d'email).
 
 ### 2. Fonction de gestion des comptes
 

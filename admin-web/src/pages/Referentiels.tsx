@@ -99,7 +99,11 @@ function configurations(ref: Referentiel): Config[] {
       table: 'tb_fonctions',
       pk: 'id_fonction',
       donnees: 'fonctions',
-      colonnes: [{ cle: 'nom_fonction', titre: 'Fonction', type: 'texte' }],
+      aide: 'Exemples : CDR = Chef de Région, RM = Responsable de Marché, AB = Animateur Beignet.',
+      colonnes: [
+        { cle: 'code_fonction', titre: 'Code', type: 'texte', majuscules: true },
+        { cle: 'nom_fonction', titre: 'Fonction', type: 'texte' },
+      ],
     },
   ];
 }

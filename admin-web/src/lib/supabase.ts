@@ -10,7 +10,7 @@ export const supabase = createClient(url ?? 'http://localhost', cle ?? 'absent',
 });
 
 /** Appelle la fonction Edge qui gère les comptes de connexion. */
-export async function appelerGestionComptes(corps: Record<string, unknown>): Promise<void> {
+export async function appelerGestionComptes(corps: Record<string, unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke('admin-utilisateurs', { body: corps });
   if (error) {
     // Récupère le message renvoyé par la fonction si disponible
@@ -28,6 +28,7 @@ export async function appelerGestionComptes(corps: Record<string, unknown>): Pro
     );
   }
   if (data?.erreur) throw new Error(data.erreur);
+  return data ?? {};
 }
 
 /** Traduit les erreurs PostgreSQL les plus courantes en messages clairs. */

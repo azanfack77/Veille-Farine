@@ -1,14 +1,12 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Champ, Chargement, EnTetePage, Fenetre, Message } from '../components/ui';
+import { Champ, Chargement, EnTetePage, Fenetre, Message, Obligatoire } from '../components/ui';
 import { useReferentiel } from '../context/Session';
+import { genererMotDePasse } from '../lib/motDePasse';
 import { appelerGestionComptes, messageErreur, supabase } from '../lib/supabase';
-import type { Utilisateur } from '../lib/types';
+import type { Fonction, Utilisateur } from '../lib/types';
 
-function genererMotDePasse(): string {
-  const car = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-  const octets = crypto.getRandomValues(new Uint32Array(10));
-  return Array.from(octets, (n) => car[n % car.length]).join('');
-}
+/** « Chef de Région (CDR) », ou le seul libellé si la fonction n'a pas de code. */
+const libelleFonction = (f: Fonction) => (f.code_fonction ? `${f.nom_fonction} (${f.code_fonction})` : f.nom_fonction);
 
 type Fiche = {
   nom: string;
@@ -39,7 +37,10 @@ export function Utilisateurs() {
     charger();
   }, [charger]);
 
-  const nomFonction = (id: number | null) => ref.fonctions.find((f) => f.id_fonction === id)?.nom_fonction ?? '—';
+  const nomFonction = (id: number | null) => {
+    const f = ref.fonctions.find((x) => x.id_fonction === id);
+    return f ? libelleFonction(f) : '—';
+  };
   const nomMinoterie = (id: number) => ref.minoteries.find((m) => m.id_minoterie === id)?.nom_minoterie ?? '—';
 
   const basculerActif = async (u: Utilisateur) => {
@@ -199,7 +200,7 @@ function FormulaireUtilisateur({
     email: utilisateur?.email ?? '',
     phone: utilisateur?.phone ?? '+237',
     id_fonction: utilisateur?.id_fonction == null ? '' : String(utilisateur.id_fonction),
-    id_minoterie: String(utilisateur?.id_minoterie ?? minoteriesAutorisees[0]?.id_minoterie ?? ''),
+    id_minoterie: utilisateur ? String(utilisateur.id_minoterie) : '', // à choisir explicitement
     mot_de_passe: genererMotDePasse(),
   }));
   const [erreur, setErreur] = useState<string | null>(null);
@@ -209,12 +210,24 @@ function FormulaireUtilisateur({
   const envoyer = async (e: FormEvent) => {
     e.preventDefault();
     setErreur(null);
+    // Champs obligatoires : nom, prénom, email, fonction et minoterie
+    const manquants = [
+      !fiche.nom.trim() && 'le nom',
+      !fiche.prenom.trim() && 'le prénom',
+      !fiche.email.trim() && "l'email",
+      !fiche.id_fonction && 'la fonction',
+      !fiche.id_minoterie && 'la minoterie',
+    ].filter(Boolean);
+    if (manquants.length > 0) {
+      setErreur(`Renseignez ${manquants.join(', ')}.`);
+      return;
+    }
     setEnvoi(true);
     const commun = {
       nom: fiche.nom.trim().toUpperCase(),
       prenom: fiche.prenom.trim(),
       phone: fiche.phone.trim() === '' || fiche.phone.trim() === '+237' ? null : fiche.phone.trim(),
-      id_fonction: fiche.id_fonction === '' ? null : Number(fiche.id_fonction),
+      id_fonction: Number(fiche.id_fonction),
       id_minoterie: Number(fiche.id_minoterie),
     };
     try {
@@ -225,7 +238,7 @@ function FormulaireUtilisateur({
       } else {
         await appelerGestionComptes({ action: 'creer', email: fiche.email.trim(), mot_de_passe: fiche.mot_de_passe, ...commun });
         onEnregistre(
-          `${commun.prenom} ${commun.nom} peut se connecter avec ${fiche.email.trim()} et le mot de passe ${fiche.mot_de_passe}. Transmettez-le-lui de façon sûre.`,
+          `${commun.prenom} ${commun.nom} peut se connecter à l'application mobile avec ${fiche.email.trim()} et le mot de passe ${fiche.mot_de_passe} (ou avec un code reçu par email). Transmettez-le-lui de façon sûre.`,
         );
       }
     } catch (err) {
@@ -239,33 +252,38 @@ function FormulaireUtilisateur({
     <Fenetre titre={utilisateur ? 'Modifier un enquêteur' : 'Ajouter un enquêteur'} onFermer={onFermer}>
       <form onSubmit={envoyer} className="formulaire">
         <div className="grille-2">
-          <Champ libelle="Prénom">
+          <Champ libelle="Prénom" obligatoire>
             <input value={fiche.prenom} onChange={maj('prenom')} required />
           </Champ>
-          <Champ libelle="Nom">
+          <Champ libelle="Nom" obligatoire>
             <input value={fiche.nom} onChange={maj('nom')} required />
           </Champ>
         </div>
-        <Champ libelle="Email" aide={utilisateur ? "L'email sert d'identifiant et ne peut pas être modifié." : undefined}>
+        <Champ libelle="Email" obligatoire aide={utilisateur ? "L'email sert d'identifiant et ne peut pas être modifié." : undefined}>
           <input type="email" value={fiche.email} onChange={maj('email')} required disabled={!!utilisateur} />
         </Champ>
         <div className="grille-2">
           <Champ libelle="Téléphone">
             <input type="tel" value={fiche.phone} onChange={maj('phone')} maxLength={20} />
           </Champ>
-          <Champ libelle="Fonction">
-            <select value={fiche.id_fonction} onChange={maj('id_fonction')}>
-              <option value="">Non précisée</option>
+          <Champ libelle="Fonction" obligatoire>
+            <select value={fiche.id_fonction} onChange={maj('id_fonction')} required>
+              <option value="" disabled>
+                Choisissez…
+              </option>
               {ref.fonctions.map((f) => (
                 <option key={f.id_fonction} value={f.id_fonction}>
-                  {f.nom_fonction}
+                  {libelleFonction(f)}
                 </option>
               ))}
             </select>
           </Champ>
         </div>
-        <Champ libelle="Minoterie" aide="Seules les minoteries autorisées dans la base sont proposées.">
+        <Champ libelle="Minoterie" obligatoire aide="Seules les minoteries autorisées dans la base sont proposées.">
           <select value={fiche.id_minoterie} onChange={maj('id_minoterie')} required>
+            <option value="" disabled>
+              Choisissez…
+            </option>
             {minoteriesAutorisees.map((m) => (
               <option key={m.id_minoterie} value={m.id_minoterie}>
                 {m.nom_minoterie}
@@ -283,6 +301,9 @@ function FormulaireUtilisateur({
             </div>
           </Champ>
         ) : null}
+        <p className="champ-aide">
+          <Obligatoire /> champ obligatoire
+        </p>
         {erreur ? <Message ton="erreur">{erreur}</Message> : null}
         <div className="fenetre-pied integre">
           <button type="button" className="bouton bouton-contour" onClick={onFermer}>
