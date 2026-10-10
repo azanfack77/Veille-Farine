@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bandeau, Bouton } from '../src/components/ui';
 import { useAuth } from '../src/context/AuthContext';
@@ -21,6 +22,7 @@ export default function EcranConnexion() {
   const [etape, setEtape] = useState<Etape>('motDePasse');
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
+  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [code, setCode] = useState('');
   const [chargement, setChargement] = useState(false);
   const [renvoiDans, setRenvoiDans] = useState(0);
@@ -131,16 +133,29 @@ export default function EcranConnexion() {
                 returnKeyType="next"
               />
               <Text style={s.libelle}>Mot de passe</Text>
-              <TextInput
-                value={motDePasse}
-                onChangeText={setMotDePasse}
-                secureTextEntry
-                autoComplete="password"
-                textContentType="password"
-                style={s.saisie}
-                onSubmitEditing={seConnecter}
-                returnKeyType="go"
-              />
+              <View style={s.ligneMotDePasse}>
+                <TextInput
+                  value={motDePasse}
+                  onChangeText={setMotDePasse}
+                  secureTextEntry={!motDePasseVisible}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="password"
+                  textContentType="password"
+                  style={[s.saisie, s.saisieMotDePasse]}
+                  onSubmitEditing={seConnecter}
+                  returnKeyType="go"
+                />
+                <Pressable
+                  onPress={() => setMotDePasseVisible((v) => !v)}
+                  style={s.oeil}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={motDePasseVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                >
+                  <Ionicons name={motDePasseVisible ? 'eye-off-outline' : 'eye-outline'} size={22} color={couleurs.encreDouce} />
+                </Pressable>
+              </View>
               {message ? <Bandeau ton={message.ton}>{message.texte}</Bandeau> : null}
               <Bouton titre="Se connecter" onPress={seConnecter} chargement={chargement} style={{ marginTop: 8 }} />
               <Bouton titre="Se connecter avec un code reçu par email" variante="discret" onPress={() => allerA('email')} />
@@ -241,5 +256,8 @@ const s = StyleSheet.create({
     fontSize: 16,
     color: couleurs.encre,
   },
+  ligneMotDePasse: { justifyContent: 'center' },
+  saisieMotDePasse: { paddingRight: 48 },
+  oeil: { position: 'absolute', right: 4, height: 44, width: 44, alignItems: 'center', justifyContent: 'center' },
   saisieCode: { fontFamily: polices.chiffreGras, fontSize: 26, letterSpacing: 6, textAlign: 'center' },
 });

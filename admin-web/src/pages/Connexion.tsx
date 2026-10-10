@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useState } from 'react';
 import { PiedDePage } from '../components/Layout';
-import { Champ, Message } from '../components/ui';
+import { Champ, Message, SaisieMotDePasse } from '../components/ui';
 import { erreurLien, useSession } from '../context/Session';
 import { noterActivite } from '../lib/inactivite';
 import { supabase } from '../lib/supabase';
@@ -90,8 +90,7 @@ export function Connexion() {
           <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Champ>
         <Champ libelle="Mot de passe">
-          <input
-            type="password"
+          <SaisieMotDePasse
             autoComplete="current-password"
             value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)}
@@ -150,8 +149,7 @@ export function NouveauMotDePasse() {
       <form className="connexion-formulaire" onSubmit={enregistrer}>
         <h1>Nouveau mot de passe</h1>
         <Champ libelle="Nouveau mot de passe">
-          <input
-            type="password"
+          <SaisieMotDePasse
             autoComplete="new-password"
             minLength={8}
             value={motDePasse}
@@ -160,8 +158,7 @@ export function NouveauMotDePasse() {
           />
         </Champ>
         <Champ libelle="Confirmer le mot de passe">
-          <input
-            type="password"
+          <SaisieMotDePasse
             autoComplete="new-password"
             minLength={8}
             value={confirmation}
