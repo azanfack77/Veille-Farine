@@ -58,13 +58,35 @@ export function Fenetre({
   );
 }
 
-export function Champ({ libelle, children, aide }: { libelle: string; children: ReactNode; aide?: string }) {
+export function Champ({
+  libelle,
+  children,
+  aide,
+  obligatoire,
+}: {
+  libelle: string;
+  children: ReactNode;
+  aide?: string;
+  obligatoire?: boolean;
+}) {
   return (
     <label className="champ">
-      <span className="champ-libelle">{libelle}</span>
+      <span className="champ-libelle">
+        {libelle}
+        {obligatoire ? <Obligatoire /> : null}
+      </span>
       {children}
       {aide ? <span className="champ-aide">{aide}</span> : null}
     </label>
+  );
+}
+
+/** Astérisque rouge des champs obligatoires. */
+export function Obligatoire() {
+  return (
+    <span className="obligatoire" aria-hidden="true">
+      {' '}*
+    </span>
   );
 }
 

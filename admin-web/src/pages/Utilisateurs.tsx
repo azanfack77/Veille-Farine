@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Champ, Chargement, EnTetePage, Fenetre, Message } from '../components/ui';
+import { Champ, Chargement, EnTetePage, Fenetre, Message, Obligatoire } from '../components/ui';
 import { useReferentiel } from '../context/Session';
 import { genererMotDePasse } from '../lib/motDePasse';
 import { appelerGestionComptes, messageErreur, supabase } from '../lib/supabase';
@@ -252,21 +252,21 @@ function FormulaireUtilisateur({
     <Fenetre titre={utilisateur ? 'Modifier un enquêteur' : 'Ajouter un enquêteur'} onFermer={onFermer}>
       <form onSubmit={envoyer} className="formulaire">
         <div className="grille-2">
-          <Champ libelle="Prénom *">
+          <Champ libelle="Prénom" obligatoire>
             <input value={fiche.prenom} onChange={maj('prenom')} required />
           </Champ>
-          <Champ libelle="Nom *">
+          <Champ libelle="Nom" obligatoire>
             <input value={fiche.nom} onChange={maj('nom')} required />
           </Champ>
         </div>
-        <Champ libelle="Email *" aide={utilisateur ? "L'email sert d'identifiant et ne peut pas être modifié." : undefined}>
+        <Champ libelle="Email" obligatoire aide={utilisateur ? "L'email sert d'identifiant et ne peut pas être modifié." : undefined}>
           <input type="email" value={fiche.email} onChange={maj('email')} required disabled={!!utilisateur} />
         </Champ>
         <div className="grille-2">
           <Champ libelle="Téléphone">
             <input type="tel" value={fiche.phone} onChange={maj('phone')} maxLength={20} />
           </Champ>
-          <Champ libelle="Fonction *">
+          <Champ libelle="Fonction" obligatoire>
             <select value={fiche.id_fonction} onChange={maj('id_fonction')} required>
               <option value="" disabled>
                 Choisissez…
@@ -279,7 +279,7 @@ function FormulaireUtilisateur({
             </select>
           </Champ>
         </div>
-        <Champ libelle="Minoterie *" aide="Seules les minoteries autorisées dans la base sont proposées.">
+        <Champ libelle="Minoterie" obligatoire aide="Seules les minoteries autorisées dans la base sont proposées.">
           <select value={fiche.id_minoterie} onChange={maj('id_minoterie')} required>
             <option value="" disabled>
               Choisissez…
@@ -301,7 +301,9 @@ function FormulaireUtilisateur({
             </div>
           </Champ>
         ) : null}
-        <p className="champ-aide">* champ obligatoire</p>
+        <p className="champ-aide">
+          <Obligatoire /> champ obligatoire
+        </p>
         {erreur ? <Message ton="erreur">{erreur}</Message> : null}
         <div className="fenetre-pied integre">
           <button type="button" className="bouton bouton-contour" onClick={onFermer}>
