@@ -12,6 +12,7 @@ const LIENS = [
 // Les administrateurs appartiennent au groupe : la console affiche le logo du groupe.
 // (Les enquêteurs voient le logo de leur société, CADYST GRAIN ou SGMC, dans l'application mobile.)
 const LOGO_GROUPE = { src: '/logo-cadyst.png', alt: 'Groupe CADYST' };
+const LOGO_GROUPE_COMPLET = { src: '/logo-cadyst-group.png', alt: 'CADYST Group' };
 
 /** Logo du groupe, en bas de chaque page. */
 export function PiedDePage() {
@@ -28,7 +29,7 @@ export function Layout() {
     <div className="coque">
       <aside className="barre">
         <div className="barre-logo">
-          <img src={LOGO_GROUPE.src} alt={LOGO_GROUPE.alt} />
+          <img src={LOGO_GROUPE_COMPLET.src} alt={LOGO_GROUPE_COMPLET.alt} />
         </div>
         <div className="barre-marque">
           <span className="barre-titre">Veille Farines</span>
