@@ -6,7 +6,7 @@ export type Gamme = { id_gamme: number; nom_gamme: string; id_segment: number };
 export type Minoterie = { id_minoterie: number; nom_minoterie: string; autorisee_utilisateurs: boolean };
 export type Marque = { id_marque: number; nom_marque: string; id_gamme: number; id_minoterie: number };
 export type GammeGrammage = { id_gamme: number; id_grammage: number };
-export type Fonction = { id_fonction: number; nom_fonction: string };
+export type Fonction = { id_fonction: number; code_fonction: string | null; nom_fonction: string };
 
 export type Referentiel = {
   regions: Region[];

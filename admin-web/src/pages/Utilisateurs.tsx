@@ -3,7 +3,10 @@ import { Champ, Chargement, EnTetePage, Fenetre, Message } from '../components/u
 import { useReferentiel } from '../context/Session';
 import { genererMotDePasse } from '../lib/motDePasse';
 import { appelerGestionComptes, messageErreur, supabase } from '../lib/supabase';
-import type { Utilisateur } from '../lib/types';
+import type { Fonction, Utilisateur } from '../lib/types';
+
+/** « Chef de Région (CDR) », ou le seul libellé si la fonction n'a pas de code. */
+const libelleFonction = (f: Fonction) => (f.code_fonction ? `${f.nom_fonction} (${f.code_fonction})` : f.nom_fonction);
 
 type Fiche = {
   nom: string;
@@ -34,7 +37,10 @@ export function Utilisateurs() {
     charger();
   }, [charger]);
 
-  const nomFonction = (id: number | null) => ref.fonctions.find((f) => f.id_fonction === id)?.nom_fonction ?? '—';
+  const nomFonction = (id: number | null) => {
+    const f = ref.fonctions.find((x) => x.id_fonction === id);
+    return f ? libelleFonction(f) : '—';
+  };
   const nomMinoterie = (id: number) => ref.minoteries.find((m) => m.id_minoterie === id)?.nom_minoterie ?? '—';
 
   const basculerActif = async (u: Utilisateur) => {
@@ -253,7 +259,7 @@ function FormulaireUtilisateur({
               <option value="">Non précisée</option>
               {ref.fonctions.map((f) => (
                 <option key={f.id_fonction} value={f.id_fonction}>
-                  {f.nom_fonction}
+                  {libelleFonction(f)}
                 </option>
               ))}
             </select>

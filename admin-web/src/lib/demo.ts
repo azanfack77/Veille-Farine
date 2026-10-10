@@ -65,5 +65,9 @@ export const REFERENTIEL_DEMO: Referentiel = {
     { id_gamme: 3, id_grammage: 3 },
     { id_gamme: 4, id_grammage: 3 },
   ],
-  fonctions: [{ id_fonction: 1, nom_fonction: 'Commercial' }],
+  fonctions: [
+    { id_fonction: 1, code_fonction: 'CDR', nom_fonction: 'Chef de Région' },
+    { id_fonction: 2, code_fonction: 'RM', nom_fonction: 'Responsable de Marché' },
+    { id_fonction: 3, code_fonction: 'AB', nom_fonction: 'Animateur Beignet' },
+  ],
 };
