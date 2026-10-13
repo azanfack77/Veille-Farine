@@ -13,7 +13,7 @@ Collecte terrain des prix des minoteries concurrentes, avec :
 
 ### 1. Base de données
 
-Dans Supabase > SQL Editor, exécutez dans l'ordre `01_…`, `02_…`, `03_…` du dossier `supabase/sql/`.
+Dans Supabase > SQL Editor, exécutez dans l'ordre `01_…` à `05_…` du dossier `supabase/sql/`.
 Puis créez votre compte dans *Authentication > Users > Add user > Create new user* (email + mot de
 passe, cochez *Auto Confirm User*) et déclarez-vous administrateur :
 

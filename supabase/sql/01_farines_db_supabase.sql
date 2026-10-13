@@ -345,12 +345,11 @@ CREATE TABLE tb_veille_concurrentielle (
   ristourne_trimestrielle  NUMERIC(14,2),
   volume                   NUMERIC(14,2),
   -- Calculé automatiquement (non saisissable) :
-  -- NET RENDU = Sortie usine - (transport + subvention + baisse de prix + remise comptant
-  --                             + BPI + ristourne mensuelle + ristourne trimestrielle)
+  -- NET RENDU = Sortie usine + transport - (subvention + baisse de prix + remise comptant
+  --                                         + BPI + ristourne mensuelle + ristourne trimestrielle)
   -- Une composante vide compte pour 0 ; si la sortie usine est vide, le résultat est vide.
-  net_rendu_grossiste      NUMERIC(14,2) GENERATED ALWAYS AS (sortie_usine - (
-      COALESCE(cout_transport, 0)
-    + COALESCE(subvention_transport, 0)
+  net_rendu_grossiste      NUMERIC(14,2) GENERATED ALWAYS AS (sortie_usine + COALESCE(cout_transport, 0) - (
+      COALESCE(subvention_transport, 0)
     + COALESCE(baisse_prix, 0)
     + COALESCE(remise_paiement_comptant, 0)
     + COALESCE(bpi, 0)

@@ -29,12 +29,12 @@ export function CascadeNetRendu({
         <>
           <Ligne libelle="Sortie usine" valeur={formatNombre(montants.sortie_usine)} />
           {lignes.map((d) => {
-            const v = montants[d.cle] ?? 0;
+            const v = d.signe * (montants[d.cle] ?? 0);
             return (
               <Ligne
                 key={d.cle}
                 libelle={d.libelle}
-                valeur={v >= 0 ? `− ${formatNombre(v)}` : `+ ${formatNombre(-v)}`}
+                valeur={v >= 0 ? `+ ${formatNombre(v)}` : `− ${formatNombre(-v)}`}
                 discret
               />
             );
